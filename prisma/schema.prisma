@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Sector {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  country   String
+  Counter   Counter[]
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+
+  @@unique([name, slug, country])
+}
+
+model Counter {
+  id        String     @id @default(cuid())
+  symbol    String
+  name      String
+  slug      String     @unique
+  country   String
+  sector    Sector     @relation(fields: [sectorId], references: [id])
+  sectorId  String
+  position  Position[]
+  remarks   String?
+  updatedAt DateTime   @updatedAt
+  createdAt DateTime   @default(now())
+
+  @@unique([symbol, name, slug, country])
+}
+
+model Position {
+  id                String        @id @default(cuid())
+  quantity          Int
+  status            String
+  // buyCount          Int /// purchase frequency - should match with transaction count (购买次数)
+  // sellCount         Int /// sell frequency - should match with transaction count (销售次数)
+  avgBuyPrice       Decimal
+  avgSellPrice      Decimal
+  Counter           Counter       @relation(fields: [counterId], references: [id])
+  counterId         String
+  transactionRecord Transaction[]
+  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime      @default(now())
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  action     String
+  price      Decimal
+  quantity   Int
+  position   Position @relation(fields: [positionId], references: [id])
+  positionId String
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+}
