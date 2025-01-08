@@ -5,20 +5,19 @@ import {
   fetchSectorsByCountry,
   updateCounter,
 } from "@/app/lib/actions";
-import { Prisma } from "@prisma/client";
+import { Counter, Prisma, Sector } from "@prisma/client";
 import { Button, Form, Input, Select } from "antd";
 import { startTransition, useActionState, useEffect, useState } from "react";
 
 export default function EditCounterForm({
   counter,
 }: {
-  counter: Prisma.CounterUpdateInput & { sectorId: string; id: string };
+  // counter: Prisma.CounterUpdateInput & { sectorId: string; id: string };
+  counter: Counter;
 }) {
   const updateCounterWithId = updateCounter.bind(null, counter.id);
   const [newCountry, setNewCountry] = useState(counter.country as string);
-  const [sectors, setSectors] = useState<Prisma.SectorCreateInput[] | null>(
-    null
-  );
+  const [sectors, setSectors] = useState<Sector[] | null>(null);
   const [error, formAction, isPending] = useActionState(
     updateCounterWithId,
     null

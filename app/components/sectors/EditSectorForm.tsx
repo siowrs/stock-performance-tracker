@@ -8,17 +8,13 @@ import {
   updateSector,
 } from "@/app/lib/actions";
 import prisma from "@/app/lib/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, Sector } from "@prisma/client";
 
 // interface FormRule {
 //   name: string;
 //   country: string;
 // }
-export default function EditSectorForm({
-  sector,
-}: {
-  sector: Prisma.SectorUpdateInput & { id: string };
-}) {
+export default function EditSectorForm({ sector }: { sector: Sector }) {
   // const initialState: SectorErrorState = { errors: {}, message: null };
   const updateSectorWithId = updateSector.bind(null, sector.id);
 

@@ -9,9 +9,6 @@ export default async function EditSectorPage({
 }) {
   const { slug } = await params;
   const sector = await fetchSectorBySlug(slug);
-  if (!sector) {
-    return "No sector found.";
-  }
 
-  return <EditSectorForm sector={sector} />;
+  return sector ? <EditSectorForm sector={sector} /> : "No sector found.";
 }

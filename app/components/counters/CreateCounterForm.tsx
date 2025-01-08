@@ -5,15 +5,13 @@ import {
   fetchCounters,
   fetchSectorsByCountry,
 } from "@/app/lib/actions";
-import { Prisma } from "@prisma/client";
+import { Prisma, Sector } from "@prisma/client";
 import { Button, Form, Input, Select } from "antd";
 import { startTransition, useActionState, useEffect, useState } from "react";
 
 export default function CreateCounterForm() {
   const [country, setCountry] = useState("my");
-  const [sectors, setSectors] = useState<Prisma.SectorCreateInput[] | null>(
-    null
-  );
+  const [sectors, setSectors] = useState<Sector[] | null>(null);
   const [error, formAction, isPending] = useActionState(createCounter, null);
   const [form] = Form.useForm();
 

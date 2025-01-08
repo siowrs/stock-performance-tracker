@@ -44,11 +44,11 @@ export async function fetchSectors() {
   }
 }
 
-export async function fetchSectorBySlug(slug: string) {
+export async function fetchSectorBySlug(sectorSlug: string) {
   try {
     return await prisma.sector.findUnique({
       where: {
-        slug: slug,
+        slug: sectorSlug,
       },
     });
   } catch (error) {
@@ -89,13 +89,15 @@ export async function createSector(
   revalidatePath("/sectors");
 }
 export async function updateSector(
-  id: string,
+  sectorId: string,
   prevState: any,
   formData: Prisma.SectorUpdateInput
 ) {
   try {
     await prisma.sector.update({
-      where: { id },
+      where: {
+        id: sectorId,
+      },
       data: {
         name: formData.name as string,
         slug: slugger.slug((formData.name + "-" + formData.country) as string),
@@ -111,11 +113,11 @@ export async function updateSector(
   redirect("/sectors");
 }
 
-export async function deleteSector(id: string) {
+export async function deleteSector(sectorId: string) {
   try {
     await prisma.sector.delete({
       where: {
-        id,
+        id: sectorId,
       },
     });
   } catch (error) {
@@ -144,11 +146,11 @@ export async function fetchCounters() {
     throw new Error("Failed to fetch all counters.");
   }
 }
-export async function fetchCounterBySlug(slug: string) {
+export async function fetchCounterBySlug(counterSlug: string) {
   try {
     return await prisma.counter.findUnique({
       where: {
-        slug: slug,
+        slug: counterSlug,
       },
     });
   } catch (error) {
@@ -167,7 +169,7 @@ export async function createCounter(
         name: formData.name as string,
         slug: slugger.slug((formData.name + "-" + formData.country) as string),
         country: formData.country as string,
-        remarks: formData.remarks as string,
+        remarks: formData.remarks || "",
         sector: {
           connect: { id: formData.sector as string },
         },
@@ -182,13 +184,15 @@ export async function createCounter(
 }
 
 export async function updateCounter(
-  id: string,
+  counterId: string,
   prevState: any,
   formData: Prisma.CounterUpdateInput
 ) {
   try {
     await prisma.counter.update({
-      where: { id },
+      where: {
+        id: counterId,
+      },
       data: {
         symbol: (formData.symbol as string).toUpperCase(),
         name: formData.name as string,
@@ -208,11 +212,11 @@ export async function updateCounter(
   redirect("/counters");
 }
 
-export async function deleteCounter(id: string) {
+export async function deleteCounter(counterId: string) {
   try {
     await prisma.counter.delete({
       where: {
-        id,
+        id: counterId,
       },
     });
   } catch (error) {
@@ -223,3 +227,262 @@ export async function deleteCounter(id: string) {
 }
 
 //---position---//
+export async function fetchPositions() {
+  try {
+    return await prisma.position.findMany({
+      // query for both position and counter name
+      include: {
+        counter: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    consoleError(error);
+    throw new Error("Failed to fetch all positions.");
+  }
+}
+
+export async function fetchOpenPositions() {
+  try {
+    return await prisma.position.findMany({
+      where: {
+        status: "open",
+      },
+    });
+  } catch (error) {
+    consoleError(error);
+    throw new Error("Failed to fetch open positions.");
+  }
+}
+
+export async function fetchPositionById(positionId: string) {
+  try {
+    return await prisma.position.findUnique({
+      where: {
+        id: positionId,
+      },
+    });
+  } catch (error) {
+    consoleError(error);
+    throw new Error("Failed to fetch position by ID.");
+  }
+}
+
+export async function createPosition(
+  prevState: unknown,
+  formData: Prisma.PositionCreateInput & Prisma.PositionTransactionCreateInput
+) {
+  try {
+    //wrap both in transaction so that it fails or success together
+    await prisma.$transaction([
+      prisma.position.create({
+        data: {
+          quantity: +formData.quantity,
+          status: "open",
+          avgBuyPrice: new Prisma.Decimal(+formData.unitPrice),
+          avgSellPrice: Prisma.skip,
+          counter: {
+            connect: { id: formData.counter as string },
+          },
+          //create record simultaneously
+          transaction: {
+            create: {
+              action: "buy",
+              unitPrice: new Prisma.Decimal(+formData.unitPrice),
+              quantity: +formData.quantity,
+              totalPrice: new Prisma.Decimal(
+                +formData.unitPrice * +formData.quantity
+              ),
+            },
+          },
+        },
+      }),
+    ]);
+  } catch (error) {
+    consoleError(error);
+    throw new Error("Failed to create new position.");
+  }
+
+  revalidatePath("/positions");
+}
+
+async function calculateAvgPrice(
+  positionId: string,
+  action: "buy" | "sell",
+  formUnitPrice: string | number | Prisma.Decimal | Prisma.DecimalJsLike,
+  formQuantity: string | number
+) {
+  const {
+    _sum: { totalPrice, quantity },
+  } = await prisma.positionTransaction.aggregate({
+    _sum: {
+      totalPrice: true,
+      quantity: true,
+    },
+    where: {
+      positionId,
+      action: action,
+    },
+  });
+
+  // totalPrice returns a Decimal.js object
+  // following the data type in Prisma schema
+  // therefore must use decimal.js method to calculate
+  const prevTotalPrice = totalPrice ?? new Prisma.Decimal(0);
+
+  const prevQuantitySum = quantity ?? 0;
+
+  const formDataTotalPrice = new Prisma.Decimal(+formUnitPrice).times(
+    formQuantity
+  );
+
+  const newTotalPrice = prevTotalPrice.plus(formDataTotalPrice);
+
+  const avgPrice = newTotalPrice
+    .dividedBy(prevQuantitySum + +formQuantity)
+    .toDecimalPlaces(3);
+
+  return [avgPrice, formDataTotalPrice];
+}
+// average up
+export async function increasePosition(
+  positionId: string,
+  prevState: unknown,
+  formData: Prisma.PositionUpdateInput & Prisma.PositionTransactionCreateInput
+) {
+  try {
+    const [avgBuyPrice, formDataTotalPrice] = await calculateAvgPrice(
+      positionId,
+      "buy",
+      formData.unitPrice,
+      formData.quantity
+    );
+
+    await prisma.position.update({
+      where: {
+        id: positionId,
+        status: "open",
+      },
+      data: {
+        quantity: {
+          increment: +formData.quantity,
+        },
+        avgBuyPrice: avgBuyPrice,
+        transaction: {
+          create: {
+            action: "buy",
+            unitPrice: +formData.unitPrice,
+            quantity: +formData.quantity,
+            totalPrice: formDataTotalPrice,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    consoleError(error);
+    throw new Error("Failed to increase position.");
+  }
+
+  redirect("/positions");
+}
+
+// average down
+// tdl limit input to available quanitty, similar to moomoo
+export async function decreasePosition(
+  positionId: string,
+  prevState: unknown,
+  formData: Prisma.PositionUpdateInput & Prisma.PositionTransactionCreateInput
+) {
+  try {
+    const currentPosition = await prisma.position.findUnique({
+      where: {
+        id: positionId,
+        status: "open",
+      },
+      select: {
+        quantity: true,
+      },
+    });
+
+    // if position doesnt exist or closed
+    if (!currentPosition) {
+      throw new Error("Position doesn't exist or already closed.");
+    }
+
+    // if trying sell more than actual quantity
+    if (+formData.quantity > currentPosition.quantity) {
+      throw new Error(
+        `Unable to sell ${formData.quantity} units. Only ${currentPosition.quantity} units available.`
+      );
+    }
+
+    const [avgSellPrice, formDataTotalPrice] = await calculateAvgPrice(
+      positionId,
+      "sell",
+      formData.unitPrice,
+      formData.quantity
+    );
+
+    const remainingQuantity = +formData.quantity - currentPosition.quantity;
+
+    await prisma.position.update({
+      where: {
+        id: positionId,
+        status: "open",
+      },
+      data: {
+        quantity: {
+          decrement: +formData.quantity,
+        },
+        status: remainingQuantity === 0 ? "close" : "open",
+        avgSellPrice: avgSellPrice,
+        transaction: {
+          create: {
+            action: "sell",
+            unitPrice: +formData.unitPrice,
+            quantity: +formData.quantity,
+            totalPrice: formDataTotalPrice,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    consoleError(error);
+    throw new Error("Failed to decrease position.");
+  }
+  redirect("/positions");
+}
+
+export async function closePosition(
+  positionId: string,
+  prevState: unknown,
+  formData: Prisma.PositionUpdateInput
+) {
+  try {
+    await prisma.position.update({
+      where: {
+        id: positionId,
+      },
+      data: {
+        //tdl calculate remaining position
+      },
+    });
+  } catch (error) {}
+}
+
+//---position transaction---//
+export async function fetchPositionTransactionByPositionId(positionId: string) {
+  try {
+    return await prisma.positionTransaction.findUnique({
+      where: {
+        id: positionId,
+      },
+    });
+  } catch (error) {
+    consoleError(error);
+    throw new Error("Failed to fetch position transaction by positon ID.");
+  }
+}

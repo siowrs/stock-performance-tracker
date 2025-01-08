@@ -5,7 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["strictUndefinedChecks"]
 }
 
 datasource db {
@@ -41,28 +42,39 @@ model Counter {
   @@unique([symbol, name, slug, country])
 }
 
-model Position {
-  id                String        @id @default(cuid())
-  quantity          Int
-  status            String
-  // buyCount          Int /// purchase frequency - should match with transaction count (购买次数)
-  // sellCount         Int /// sell frequency - should match with transaction count (销售次数)
-  avgBuyPrice       Decimal
-  avgSellPrice      Decimal
-  Counter           Counter       @relation(fields: [counterId], references: [id])
-  counterId         String
-  transactionRecord Transaction[]
-  updatedAt         DateTime      @updatedAt
-  createdAt         DateTime      @default(now())
+enum PositionStatus {
+  open
+  close
 }
 
-model Transaction {
-  id         String   @id @default(cuid())
-  action     String
-  price      Decimal
+model Position {
+  id           String                @id @default(cuid())
+  quantity     Int
+  status       PositionStatus
+  // buyCount          Int /// purchase frequency - should match with transaction count (购买次数)
+  // sellCount         Int /// sell frequency - should match with transaction count (销售次数)
+  avgBuyPrice  Decimal               @db.Decimal(10, 3)
+  avgSellPrice Decimal?              @db.Decimal(10, 3)
+  counter      Counter               @relation(fields: [counterId], references: [id])
+  counterId    String
+  transaction  PositionTransaction[]
+  updatedAt    DateTime              @updatedAt
+  createdAt    DateTime              @default(now())
+}
+
+enum TransactionAction {
+  buy
+  sell
+}
+
+model PositionTransaction {
+  id         String            @id @default(cuid())
+  action     TransactionAction
+  unitPrice  Decimal           @db.Decimal(10, 3)
   quantity   Int
-  position   Position @relation(fields: [positionId], references: [id])
+  totalPrice Decimal           @db.Decimal(10, 3)
+  position   Position          @relation(fields: [positionId], references: [id])
   positionId String
-  updatedAt  DateTime @updatedAt
-  createdAt  DateTime @default(now())
+  updatedAt  DateTime          @updatedAt
+  createdAt  DateTime          @default(now())
 }

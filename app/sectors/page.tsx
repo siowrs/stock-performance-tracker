@@ -6,7 +6,7 @@ import { DeleteButton } from "../components/buttons";
 import { deleteSector, fetchSectors } from "../lib/actions";
 import Link from "next/link";
 
-export default async function Page() {
+export default async function SectorPage() {
   const sectors = await fetchSectors();
   return (
     <>
