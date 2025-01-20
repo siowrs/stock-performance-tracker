@@ -1,4 +1,4 @@
-import DecreasePositionForm from "@/app/components/positions/DecreasePositionForm";
+import DecreasePositionForm from "@/app/components/positions/decrease-position-form";
 import { fetchPositionById } from "@/app/lib/actions";
 
 export default async function DecreasePositionPage({

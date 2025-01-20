@@ -1,23 +1,30 @@
 "use client";
 
-import { createPosition } from "@/app/lib/actions";
+import { createPosition, PositionErrorState } from "@/app/lib/actions";
 import { Counter, Prisma } from "@prisma/client";
-import { Button, Form, Input, Select } from "antd";
-import { startTransition, useActionState } from "react";
+import {
+  Button,
+  DatePicker,
+  Form,
+  Input,
+  Select,
+  Space,
+  Typography,
+} from "antd";
+import { ReactNode, startTransition, useActionState } from "react";
 
 export default function CreatePositionForm({
   counters,
+  error,
+  handleSubmit,
 }: {
   counters: Counter[];
-}) {
-  const [error, formAction, isPending] = useActionState(createPosition, null);
-
-  const handleSubmit = (
+  error: PositionErrorState;
+  handleSubmit: (
     values: Prisma.PositionCreateInput & Prisma.PositionTransactionCreateInput
-  ) => {
-    startTransition(() => formAction(values));
-  };
-
+  ) => void;
+}) {
+  const { Text } = Typography;
   const groupedCounters = counters.reduce((acc, counter) => {
     const country = counter.country.toLowerCase();
     //create an empty array if not yet created
@@ -35,8 +42,9 @@ export default function CreatePositionForm({
   }, {} as Record<string, { label: string; value: string }[]>);
 
   return (
-    <>
-      <Form onFinish={handleSubmit} layout="vertical">
+    <Space direction="vertical" style={{ display: "flex" }}>
+      {error?.message && <Text type="danger">{error.message}</Text>}
+      <Form onFinish={handleSubmit} layout="vertical" id="createPositionForm">
         <Form.Item label="Counter" name="counter">
           <Select
             showSearch
@@ -62,10 +70,13 @@ export default function CreatePositionForm({
         <Form.Item label="Price" name="unitPrice">
           <Input />
         </Form.Item>
-        <Button loading={isPending} htmlType="submit">
+        <Form.Item label="Open Date" name="openedAt">
+          <DatePicker format="DD/MM/YYYY" />
+        </Form.Item>
+        {/* <Button loading={isPending} htmlType="submit">
           Submit
-        </Button>
+        </Button> */}
       </Form>
-    </>
+    </Space>
   );
 }

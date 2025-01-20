@@ -1,12 +1,12 @@
 import { DeleteTwoTone } from "@ant-design/icons";
 import prisma from "../lib/db";
-import CreateSectorForm from "../components/sectors/CreateSectorForm";
+import CreateSectorForm from "../components/sectors/create-sector-form";
 import { Button } from "antd";
 import { DeleteButton } from "../components/buttons";
 import { deleteSector, fetchSectors } from "../lib/actions";
 import Link from "next/link";
 
-export default async function SectorPage() {
+export default async function SectorsPage() {
   const sectors = await fetchSectors();
   return (
     <>

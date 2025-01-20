@@ -1,10 +1,10 @@
 import prisma from "@/app/lib/db";
-import CreateCounterForm from "../components/counters/CreateCounterForm";
+import CreateCounterForm from "../components/counters/create-counter-form";
 import { deleteCounter, fetchCounters } from "../lib/actions";
 import { DeleteButton } from "../components/buttons";
 import Link from "next/link";
 
-export default async function CounterPage() {
+export default async function CountersPage() {
   const counters = await fetchCounters();
   return (
     <>

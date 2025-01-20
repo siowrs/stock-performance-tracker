@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import AntdReact19Patch from "./lib/antd-react-19-patch";
+import ClientLayout from "./components/client-layout";
+import { MessageProvider } from "./lib/providers/message-toast-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AntdRegistry>
-          <AntdReact19Patch>{children}</AntdReact19Patch>
+          <ClientLayout>{children}</ClientLayout>
           {/* {children} */}
         </AntdRegistry>
       </body>

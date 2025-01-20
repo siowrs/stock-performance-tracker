@@ -1,5 +1,5 @@
 import prisma from "@/app/lib/db";
-import EditSectorForm from "@/app/components/sectors/EditSectorForm";
+import EditSectorForm from "@/app/components/sectors/edit-sector-form";
 import { fetchSectorBySlug } from "@/app/lib/actions";
 
 export default async function EditSectorPage({

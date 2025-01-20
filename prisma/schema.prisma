@@ -44,13 +44,14 @@ model Counter {
 
 enum PositionStatus {
   open
-  close
+  closed
 }
 
 model Position {
   id           String                @id @default(cuid())
   quantity     Int
   status       PositionStatus
+  openedAt     DateTime
   // buyCount          Int /// purchase frequency - should match with transaction count (购买次数)
   // sellCount         Int /// sell frequency - should match with transaction count (销售次数)
   avgBuyPrice  Decimal               @db.Decimal(10, 3)

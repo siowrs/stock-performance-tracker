@@ -1,4 +1,4 @@
-import IncreasePositionForm from "@/app/components/positions/IncreasePositionForm";
+import IncreasePositionForm from "@/app/components/positions/increase-position-form";
 import { fetchPositionById } from "@/app/lib/actions";
 import { Position } from "@prisma/client";
 

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import GithubSlugger from "github-slugger";
 import { Prisma } from "@prisma/client";
+import dayjs from "dayjs";
 
 const consoleError = (err: unknown) => console.error(`Database error: ${err}`);
 const slugger = new GithubSlugger();
@@ -235,6 +236,7 @@ export async function fetchPositions() {
         counter: {
           select: {
             name: true,
+            slug: true,
           },
         },
       },
@@ -271,39 +273,63 @@ export async function fetchPositionById(positionId: string) {
   }
 }
 
+export type PositionErrorState =
+  | {
+      // errors?: {
+      //   name?: string;
+      //   country?: string;
+      // };
+      message?: string | null;
+    }
+  | undefined;
+
 export async function createPosition(
-  prevState: unknown,
+  prevState: PositionErrorState,
   formData: Prisma.PositionCreateInput & Prisma.PositionTransactionCreateInput
-) {
+): Promise<PositionErrorState> {
+  // check if open position for this counter already exist
+  const positions = await prisma.position.findMany();
+  if (positions.some((p) => p.counterId === formData.counter)) {
+    //  throw new Error(
+    //    "Can only open one position for each counter. Please close the previous position before opening a new one."
+    //  );
+    return {
+      message:
+        "Can only open one position for each counter. Please close the previous position before opening a new one.",
+    };
+  }
+
   try {
-    //wrap both in transaction so that it fails or success together
-    await prisma.$transaction([
-      prisma.position.create({
-        data: {
-          quantity: +formData.quantity,
-          status: "open",
-          avgBuyPrice: new Prisma.Decimal(+formData.unitPrice),
-          avgSellPrice: Prisma.skip,
-          counter: {
-            connect: { id: formData.counter as string },
-          },
-          //create record simultaneously
-          transaction: {
-            create: {
-              action: "buy",
-              unitPrice: new Prisma.Decimal(+formData.unitPrice),
-              quantity: +formData.quantity,
-              totalPrice: new Prisma.Decimal(
-                +formData.unitPrice * +formData.quantity
-              ),
-            },
+    await prisma.position.create({
+      data: {
+        quantity: +formData.quantity,
+        status: "open",
+        openedAt: new Date(formData.openedAt).toISOString(),
+        avgBuyPrice: new Prisma.Decimal(+formData.unitPrice),
+        avgSellPrice: Prisma.skip,
+        counter: {
+          connect: { id: formData.counter as string },
+        },
+        //create record simultaneously
+        transaction: {
+          create: {
+            action: "buy",
+            unitPrice: new Prisma.Decimal(+formData.unitPrice),
+            quantity: +formData.quantity,
+            totalPrice: new Prisma.Decimal(
+              +formData.unitPrice * +formData.quantity
+            ),
+            createdAt: new Date(formData.openedAt).toISOString(),
           },
         },
-      }),
-    ]);
+      },
+    });
   } catch (error) {
     consoleError(error);
-    throw new Error("Failed to create new position.");
+    // throw new Error("Failed to create new position.");
+    return {
+      message: "Failed to create new position.",
+    };
   }
 
   revalidatePath("/positions");
@@ -437,7 +463,7 @@ export async function decreasePosition(
         quantity: {
           decrement: +formData.quantity,
         },
-        status: remainingQuantity === 0 ? "close" : "open",
+        status: remainingQuantity === 0 ? "closed" : "open",
         avgSellPrice: avgSellPrice,
         transaction: {
           create: {
