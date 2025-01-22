@@ -70,7 +70,7 @@ export default function CreatePositionForm({
         <Form.Item label="Price" name="unitPrice">
           <Input />
         </Form.Item>
-        <Form.Item label="Open Date" name="openedAt">
+        <Form.Item label="Open Date" name="transactionDate">
           <DatePicker format="DD/MM/YYYY" />
         </Form.Item>
         {/* <Button loading={isPending} htmlType="submit">

@@ -289,10 +289,11 @@ export async function createPosition(
 ): Promise<PositionErrorState> {
   // check if open position for this counter already exist
   const positions = await prisma.position.findMany();
-  if (positions.some((p) => p.counterId === formData.counter)) {
-    //  throw new Error(
-    //    "Can only open one position for each counter. Please close the previous position before opening a new one."
-    //  );
+  if (
+    positions.some(
+      (p) => p.counterId === formData.counter && p.status === "open"
+    )
+  ) {
     return {
       message:
         "Can only open one position for each counter. Please close the previous position before opening a new one.",
@@ -302,9 +303,10 @@ export async function createPosition(
   try {
     await prisma.position.create({
       data: {
-        quantity: +formData.quantity,
+        quantityBought: +formData.quantity,
+        quantityRemaining: +formData.quantity,
         status: "open",
-        openedAt: new Date(formData.openedAt).toISOString(),
+        openedAt: new Date(formData.transactionDate).toISOString(),
         avgBuyPrice: new Prisma.Decimal(+formData.unitPrice),
         avgSellPrice: Prisma.skip,
         counter: {
@@ -319,14 +321,13 @@ export async function createPosition(
             totalPrice: new Prisma.Decimal(
               +formData.unitPrice * +formData.quantity
             ),
-            createdAt: new Date(formData.openedAt).toISOString(),
+            transactionDate: new Date(formData.transactionDate).toISOString(),
           },
         },
       },
     });
   } catch (error) {
     consoleError(error);
-    // throw new Error("Failed to create new position.");
     return {
       message: "Failed to create new position.",
     };
@@ -373,16 +374,44 @@ async function calculateAvgPrice(
 
   return [avgPrice, formDataTotalPrice];
 }
-// average up
-export async function increasePosition(
+
+export async function updatePosition(
   positionId: string,
-  prevState: unknown,
+  prevState: PositionErrorState,
   formData: Prisma.PositionUpdateInput & Prisma.PositionTransactionCreateInput
-) {
+): Promise<PositionErrorState> {
+  console.log(formData);
+  const currentPosition = await prisma.position.findUnique({
+    where: {
+      id: positionId,
+      status: "open",
+    },
+    select: {
+      quantityBought: true,
+      quantityRemaining: true,
+    },
+  });
+
+  const action = formData.action;
+
+  // if position doesnt exist or closed
+  if (!currentPosition) {
+    return { message: "Position doesn't exist or already closed." };
+  }
+
+  // if trying sell more than remaining quantity
+  const remainingQuantity =
+    currentPosition.quantityRemaining - +formData.quantity;
+  if (action == "sell" && remainingQuantity < 0) {
+    return {
+      message: `Unable to sell ${formData.quantity} units. Only ${currentPosition.quantityRemaining} units available.`,
+    };
+  }
+
   try {
-    const [avgBuyPrice, formDataTotalPrice] = await calculateAvgPrice(
+    const [avgPrice, formDataTotalPrice] = await calculateAvgPrice(
       positionId,
-      "buy",
+      action,
       formData.unitPrice,
       formData.quantity
     );
@@ -393,111 +422,86 @@ export async function increasePosition(
         status: "open",
       },
       data: {
-        quantity: {
-          increment: +formData.quantity,
-        },
-        avgBuyPrice: avgBuyPrice,
+        //if action is buy
+        ...(action === "buy" && {
+          quantityBought: {
+            increment: +formData.quantity,
+          },
+          quantityRemaining: {
+            increment: +formData.quantity,
+          },
+          avgBuyPrice: avgPrice,
+        }),
+
+        //if action is sell
+        ...(action === "sell" && {
+          quantityRemaining: {
+            decrement: +formData.quantity,
+          },
+          avgSellPrice: avgPrice,
+          status: remainingQuantity === 0 ? "closed" : "open",
+        }),
+
         transaction: {
           create: {
-            action: "buy",
+            action: action,
             unitPrice: +formData.unitPrice,
             quantity: +formData.quantity,
             totalPrice: formDataTotalPrice,
+            transactionDate: new Date(formData.transactionDate).toISOString(),
           },
         },
       },
     });
   } catch (error) {
     consoleError(error);
-    throw new Error("Failed to increase position.");
+    return {
+      message: "Failed to increase position.",
+    };
   }
 
-  redirect("/positions");
+  revalidatePath("/positions");
 }
 
-// average down
-// tdl limit input to available quanitty, similar to moomoo
-export async function decreasePosition(
-  positionId: string,
-  prevState: unknown,
-  formData: Prisma.PositionUpdateInput & Prisma.PositionTransactionCreateInput
-) {
+export async function deletePosition(positionId: string) {
   try {
-    const currentPosition = await prisma.position.findUnique({
-      where: {
-        id: positionId,
-        status: "open",
-      },
-      select: {
-        quantity: true,
-      },
+    await prisma.position.delete({
+      where: { id: positionId },
     });
-
-    // if position doesnt exist or closed
-    if (!currentPosition) {
-      throw new Error("Position doesn't exist or already closed.");
-    }
-
-    // if trying sell more than actual quantity
-    if (+formData.quantity > currentPosition.quantity) {
-      throw new Error(
-        `Unable to sell ${formData.quantity} units. Only ${currentPosition.quantity} units available.`
-      );
-    }
-
-    const [avgSellPrice, formDataTotalPrice] = await calculateAvgPrice(
-      positionId,
-      "sell",
-      formData.unitPrice,
-      formData.quantity
-    );
-
-    const remainingQuantity = +formData.quantity - currentPosition.quantity;
-
-    await prisma.position.update({
-      where: {
-        id: positionId,
-        status: "open",
-      },
-      data: {
-        quantity: {
-          decrement: +formData.quantity,
-        },
-        status: remainingQuantity === 0 ? "closed" : "open",
-        avgSellPrice: avgSellPrice,
-        transaction: {
-          create: {
-            action: "sell",
-            unitPrice: +formData.unitPrice,
-            quantity: +formData.quantity,
-            totalPrice: formDataTotalPrice,
-          },
-        },
-      },
-    });
-  } catch (error) {
+  } catch (error: any) {
     consoleError(error);
-    throw new Error("Failed to decrease position.");
+
+    // if position does not exist
+    if (error.code === "P2025") {
+      return {
+        message: "Position does not exist.",
+      };
+    }
+
+    return {
+      message: "Failed to delete position.",
+    };
   }
-  redirect("/positions");
+
+  revalidatePath("/positions");
 }
 
-export async function closePosition(
-  positionId: string,
-  prevState: unknown,
-  formData: Prisma.PositionUpdateInput
-) {
-  try {
-    await prisma.position.update({
-      where: {
-        id: positionId,
-      },
-      data: {
-        //tdl calculate remaining position
-      },
-    });
-  } catch (error) {}
-}
+// export async function closePosition(
+//   positionId: string,
+//   prevState: unknown,
+//   formData: Prisma.PositionUpdateInput
+// ) {
+//   try {
+//     await prisma.position.update({
+//       where: {
+//         id: positionId,
+//       },
+//       data: {
+//         //tdl calculate remaining position
+//       },
+//     });
+//   } catch (error) {}
+// }
 
 //---position transaction---//
 export async function fetchPositionTransactionByPositionId(positionId: string) {

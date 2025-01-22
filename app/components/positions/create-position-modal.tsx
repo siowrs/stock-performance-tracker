@@ -13,22 +13,25 @@ export default function CreatePositionModal({
 }: {
   counters: Counter[];
 }) {
-  const [open, setOpen] = useState<boolean>(false);
+  const [createPositionModalOpen, setCreatePositionModalOpen] =
+    useState<boolean>(false);
+
   const [error, formAction, isPending] = useActionState(createPosition, {
     message: null,
   });
+
   const openToast = useMessageContext();
 
-  const handleSubmit = async (
+  const handleSubmit = (
     values: Prisma.PositionCreateInput & Prisma.PositionTransactionCreateInput
   ) => {
-    // convert openedAt to string to prevent below error:
+    // convert transactionDate to string to prevent below error:
     // Warning: Only plain objects can be passed to Client Components from Server Components.
     // Objects with toJSON methods are not supported.
     // Convert it manually to a simple value before passing it to props.
     const newValues = {
       ...values,
-      openedAt: dayjs(values.openedAt).toString(),
+      transactionDate: dayjs(values.transactionDate).toString(),
     };
 
     startTransition(() => {
@@ -37,22 +40,25 @@ export default function CreatePositionModal({
   };
 
   useEffect(() => {
-    if (!error) {
-      setOpen(false);
+    if (!error && !isPending) {
+      setCreatePositionModalOpen(false);
       openToast("success", "Position opened successfully.");
     }
-  }, [error]);
+  }, [error, isPending]);
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Open New Position</Button>
+      <Button onClick={() => setCreatePositionModalOpen(true)}>
+        Open New Position
+      </Button>
       <Modal
+        destroyOnClose={true}
         title="Open New Position"
-        open={open}
+        open={createPositionModalOpen}
         okText="Open New Position"
-        // onOk={() => setOpen(false)}
+        // onOk={() => setCreatePositionModalOpen(false)}
         okButtonProps={{ form: "createPositionForm", htmlType: "submit" }}
-        onCancel={() => setOpen(false)}
+        onCancel={() => setCreatePositionModalOpen(false)}
         centered={true}
         confirmLoading={isPending}
       >

@@ -62,12 +62,12 @@ export default function EditCounterForm({
       onFinish={handleSubmit}
       form={form}
       initialValues={{
-        symbol: symbol,
-        name: name,
-        country: country,
+        symbol,
+        name,
+        country,
         // dont set sector id here to prevent flashing
         // sector: sectorId,
-        remarks: remarks,
+        remarks,
       }}
     >
       <Form.Item label="Symbol" name="symbol">

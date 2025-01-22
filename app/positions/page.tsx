@@ -6,6 +6,8 @@ import PositionTable from "../components/positions/position-table";
 import { ClientButton } from "../components/buttons";
 import CreatePositionModal from "../components/positions/create-position-modal";
 import ClientTitle from "../components/title";
+import PositionTableAndTableAction from "../components/positions/position-table-and-table-action";
+import ClientStatistic from "../components/statistic";
 
 export default async function PositionsPage() {
   const [positions, counters] = await Promise.all([
@@ -13,27 +15,28 @@ export default async function PositionsPage() {
     fetchCounters(),
   ]);
 
+  const openPositionCount = positions.reduce(
+    (acc, curr) => (curr.status === "open" ? ++acc : acc),
+    0
+  );
+
+  const closedPositionCount = positions.reduce(
+    (acc, curr) => (curr.status === "closed" ? ++acc : acc),
+    0
+  );
+
   //parse it again since decimal cant pass to client component
   const parsedPositions = JSON.parse(JSON.stringify(positions));
 
-  // parsedPositions.forEach((p) => console.log(p.openedAt, typeof p.openedAt));
   return (
     <>
       <ClientTitle level={2}>Positions</ClientTitle>
+
       <CreatePositionModal counters={counters} />
-      <PositionTable positions={parsedPositions} />
-      {/* {positions.map((p) => (
-        <li key={p.id}>
-          Counter:{" "}
-          <Link href={`counters/${p.counter.slug}`}>{p.counter.name}</Link>
-          <br />
-          Status: {p.status}
-          <br />
-          Average buy price: {p.avgBuyPrice.toString()}
-          <Link href={`positions/${p.id}/increase`}>Increase</Link>
-          <Link href={`positions/${p.id}/decrease`}>Decrease</Link>
-        </li>
-      ))} */}
+      <ClientStatistic title="Open Positions" value={openPositionCount} />
+      <ClientStatistic title="Closed Positions" value={closedPositionCount} />
+
+      <PositionTableAndTableAction positions={parsedPositions} />
     </>
   );
 }

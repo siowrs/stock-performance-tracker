@@ -32,7 +32,7 @@ model Counter {
   name      String
   slug      String     @unique
   country   String
-  sector    Sector     @relation(fields: [sectorId], references: [id])
+  sector    Sector     @relation(fields: [sectorId], references: [id], onDelete: Cascade)
   sectorId  String
   position  Position[]
   remarks   String?
@@ -48,19 +48,18 @@ enum PositionStatus {
 }
 
 model Position {
-  id           String                @id @default(cuid())
-  quantity     Int
-  status       PositionStatus
-  openedAt     DateTime
-  // buyCount          Int /// purchase frequency - should match with transaction count (购买次数)
-  // sellCount         Int /// sell frequency - should match with transaction count (销售次数)
-  avgBuyPrice  Decimal               @db.Decimal(10, 3)
-  avgSellPrice Decimal?              @db.Decimal(10, 3)
-  counter      Counter               @relation(fields: [counterId], references: [id])
-  counterId    String
-  transaction  PositionTransaction[]
-  updatedAt    DateTime              @updatedAt
-  createdAt    DateTime              @default(now())
+  id                String                @id @default(cuid())
+  quantityBought    Int
+  quantityRemaining Int
+  status            PositionStatus
+  openedAt          DateTime
+  avgBuyPrice       Decimal               @db.Decimal(10, 3)
+  avgSellPrice      Decimal?              @db.Decimal(10, 3)
+  counter           Counter               @relation(fields: [counterId], references: [id], onDelete: Cascade)
+  counterId         String
+  transaction       PositionTransaction[]
+  updatedAt         DateTime              @updatedAt
+  createdAt         DateTime              @default(now())
 }
 
 enum TransactionAction {
@@ -69,13 +68,14 @@ enum TransactionAction {
 }
 
 model PositionTransaction {
-  id         String            @id @default(cuid())
-  action     TransactionAction
-  unitPrice  Decimal           @db.Decimal(10, 3)
-  quantity   Int
-  totalPrice Decimal           @db.Decimal(10, 3)
-  position   Position          @relation(fields: [positionId], references: [id])
-  positionId String
-  updatedAt  DateTime          @updatedAt
-  createdAt  DateTime          @default(now())
+  id              String            @id @default(cuid())
+  action          TransactionAction
+  unitPrice       Decimal           @db.Decimal(10, 3)
+  quantity        Int
+  totalPrice      Decimal           @db.Decimal(10, 3)
+  position        Position          @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  positionId      String
+  transactionDate DateTime
+  updatedAt       DateTime          @updatedAt
+  createdAt       DateTime          @default(now())
 }
