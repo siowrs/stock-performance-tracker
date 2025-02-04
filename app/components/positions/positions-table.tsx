@@ -5,17 +5,17 @@ import Link from "next/link";
 import dayjs from "dayjs";
 import { useState, Dispatch, SetStateAction, useActionState } from "react";
 
-import { PositionDataType } from "./position-table-and-table-action";
 import {
   DeleteFilled,
   DeleteTwoTone,
   ExclamationCircleFilled,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
-import { deletePosition } from "@/app/lib/actions";
+import { deletePosition, PositionDataType } from "@/app/lib/actions";
 import { useMessageContext } from "@/app/lib/providers/message-toast-provider";
+import { capitalizeFirstLetter } from "@/app/lib/misc";
 
-export default function PositionTable({
+export default function PositionsTable({
   positions,
   setUpdateModalOpen,
   setSelected,
@@ -29,9 +29,9 @@ export default function PositionTable({
   const { Text } = Typography;
 
   const handleDelete = async (id: string) => {
-    const error = await deletePosition(id);
-    if (!error) {
-      openToast("success", "Position deleted successfully.");
+    const res = await deletePosition(id);
+    if (res.status) {
+      openToast(res.status, res.message);
     }
   };
 
@@ -41,7 +41,9 @@ export default function PositionTable({
       dataIndex: ["counter", "name"],
       key: "counter",
       render: (val, row) => (
-        <Link href={`counters/${row.counter.slug}`}>{val}</Link>
+        <Link href={`counters/${row.counter.slug}`}>
+          {val} ({row.counter.symbol})
+        </Link>
       ),
     },
 
@@ -50,7 +52,7 @@ export default function PositionTable({
       dataIndex: "status",
       key: "status",
       render: (val, row) => {
-        return val.charAt(0).toUpperCase() + val.slice(1);
+        return capitalizeFirstLetter(val);
       },
     },
 
@@ -95,6 +97,7 @@ export default function PositionTable({
       render: (val, row) => (
         <div className="w-full flex gap-x-2">
           <Button
+            disabled={row.status === "open" ? false : true}
             onClick={() => {
               setUpdateModalOpen(true);
               setSelected(positions.find((p) => p.id == row.id));
@@ -103,7 +106,10 @@ export default function PositionTable({
             Update
           </Button>
 
-          <Button>View</Button>
+          <Button>
+            <Link href={`positions/${row.id}`}>View</Link>
+          </Button>
+
           <Popconfirm
             okText="Delete"
             placement="topRight"

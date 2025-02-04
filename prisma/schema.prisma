@@ -32,6 +32,7 @@ model Counter {
   name      String
   slug      String     @unique
   country   String
+  currency  String
   sector    Sector     @relation(fields: [sectorId], references: [id], onDelete: Cascade)
   sectorId  String
   position  Position[]
@@ -48,18 +49,21 @@ enum PositionStatus {
 }
 
 model Position {
-  id                String                @id @default(cuid())
-  quantityBought    Int
-  quantityRemaining Int
-  status            PositionStatus
-  openedAt          DateTime
-  avgBuyPrice       Decimal               @db.Decimal(10, 3)
-  avgSellPrice      Decimal?              @db.Decimal(10, 3)
-  counter           Counter               @relation(fields: [counterId], references: [id], onDelete: Cascade)
-  counterId         String
-  transaction       PositionTransaction[]
-  updatedAt         DateTime              @updatedAt
-  createdAt         DateTime              @default(now())
+  id                   String                @id @default(cuid())
+  quantityBought       Int
+  quantityRemaining    Int
+  status               PositionStatus
+  openedAt             DateTime
+  avgBuyPrice          Decimal               @db.Decimal(10, 3)
+  avgSellPrice         Decimal?              @db.Decimal(10, 3)
+  totalCost            Decimal               @db.Decimal(10, 3)
+  realizedGL           Decimal               @db.Decimal(10, 3)
+  realizedGLPercentage Decimal               @db.Decimal(10, 3)
+  counter              Counter               @relation(fields: [counterId], references: [id], onDelete: Cascade)
+  counterId            String
+  transaction          PositionTransaction[]
+  updatedAt            DateTime              @updatedAt
+  createdAt            DateTime              @default(now())
 }
 
 enum TransactionAction {

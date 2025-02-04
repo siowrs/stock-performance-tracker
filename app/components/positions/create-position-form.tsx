@@ -1,6 +1,6 @@
 "use client";
 
-import { createPosition, PositionErrorState } from "@/app/lib/actions";
+import { createPosition, PositionReturnState } from "@/app/lib/actions";
 import { Counter, Prisma } from "@prisma/client";
 import {
   Button,
@@ -11,15 +11,15 @@ import {
   Space,
   Typography,
 } from "antd";
-import { ReactNode, startTransition, useActionState } from "react";
+import { ReactNode, startTransition, useActionState, useRef } from "react";
 
 export default function CreatePositionForm({
   counters,
-  error,
+  res,
   handleSubmit,
 }: {
   counters: Counter[];
-  error: PositionErrorState;
+  res: PositionReturnState;
   handleSubmit: (
     values: Prisma.PositionCreateInput & Prisma.PositionTransactionCreateInput
   ) => void;
@@ -43,7 +43,10 @@ export default function CreatePositionForm({
 
   return (
     <Space direction="vertical" style={{ display: "flex" }}>
-      {error?.message && <Text type="danger">{error.message}</Text>}
+      {res.status === "error" && !res.fieldError && (
+        <Text type="danger">{res.message}</Text>
+      )}
+
       <Form onFinish={handleSubmit} layout="vertical" id="createPositionForm">
         <Form.Item label="Counter" name="counter">
           <Select
@@ -67,15 +70,12 @@ export default function CreatePositionForm({
         <Form.Item label="Quantity" name="quantity">
           <Input />
         </Form.Item>
-        <Form.Item label="Price" name="unitPrice">
+        <Form.Item label="Unit Price" name="unitPrice">
           <Input />
         </Form.Item>
         <Form.Item label="Open Date" name="transactionDate">
           <DatePicker format="DD/MM/YYYY" />
         </Form.Item>
-        {/* <Button loading={isPending} htmlType="submit">
-          Submit
-        </Button> */}
       </Form>
     </Space>
   );

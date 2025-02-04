@@ -1,10 +1,16 @@
 "use client";
 
-import { Modal, Button } from "antd";
+import { Modal, Button, Typography, Form } from "antd";
 import CreatePositionForm from "./create-position-form";
 import { createPosition } from "@/app/lib/actions";
 import { Counter, Prisma } from "@prisma/client";
-import { useState, startTransition, useActionState, useEffect } from "react";
+import {
+  useState,
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+} from "react";
 import { useMessageContext } from "@/app/lib/providers/message-toast-provider";
 import dayjs from "dayjs";
 
@@ -16,9 +22,15 @@ export default function CreatePositionModal({
   const [createPositionModalOpen, setCreatePositionModalOpen] =
     useState<boolean>(false);
 
-  const [error, formAction, isPending] = useActionState(createPosition, {
-    message: null,
-  });
+  const initialStatus = {
+    status: undefined,
+    message: "",
+  };
+
+  const [res, formAction, isPending] = useActionState(
+    createPosition,
+    initialStatus
+  );
 
   const openToast = useMessageContext();
 
@@ -40,11 +52,18 @@ export default function CreatePositionModal({
   };
 
   useEffect(() => {
-    if (!error && !isPending) {
+    // console.log(res);
+    if (res.status === "success" && !isPending) {
       setCreatePositionModalOpen(false);
-      openToast("success", "Position opened successfully.");
+      openToast(res.status, res.message);
     }
-  }, [error, isPending]);
+  }, [res, isPending]);
+
+  //reset res object so that the error msg disappear on modal close
+  const handleModalClose = () => {
+    res.status = initialStatus.status;
+    res.message = initialStatus.message;
+  };
 
   return (
     <>
@@ -52,6 +71,7 @@ export default function CreatePositionModal({
         Open New Position
       </Button>
       <Modal
+        afterClose={handleModalClose}
         destroyOnClose={true}
         title="Open New Position"
         open={createPositionModalOpen}
@@ -64,7 +84,7 @@ export default function CreatePositionModal({
       >
         <CreatePositionForm
           handleSubmit={handleSubmit}
-          error={error}
+          res={res}
           counters={counters}
         />
       </Modal>

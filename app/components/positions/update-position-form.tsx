@@ -1,6 +1,10 @@
 "use client";
 
-import { PositionErrorState, updatePosition } from "@/app/lib/actions";
+import {
+  PositionDataType,
+  PositionReturnState,
+  updatePosition,
+} from "@/app/lib/actions";
 import { Position, Prisma } from "@prisma/client";
 import {
   Button,
@@ -12,15 +16,14 @@ import {
   Typography,
 } from "antd";
 import { startTransition, useActionState } from "react";
-import { PositionDataType } from "./position-table-and-table-action";
 
 export default function UpdatePositionForm({
   position,
-  error,
+  res,
   handleSubmit,
 }: {
   position: PositionDataType;
-  error: PositionErrorState;
+  res: PositionReturnState;
   handleSubmit: (
     values: Prisma.PositionUpdateInput & Prisma.PositionTransactionCreateInput
   ) => void;
@@ -31,9 +34,13 @@ export default function UpdatePositionForm({
 
   return (
     <Space direction="vertical" style={{ display: "flex" }}>
-      {error?.message && <Text type="danger">{error.message}</Text>}
+      <Text>Update position for {counter.name}.</Text>
+
+      {res.status === "error" && !res.fieldError && (
+        <Text type="danger">{res.message}</Text>
+      )}
+
       <Form onFinish={handleSubmit} layout="vertical" id="updatePositionForm">
-        <Text>Update position for {counter.name}.</Text>
         <Form.Item label="Action" name="action">
           <Select
             placeholder="Select action"

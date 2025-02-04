@@ -2,11 +2,11 @@ import { Counter } from "@prisma/client";
 import CreatePositionForm from "../components/positions/create-position-form";
 import { fetchCounters, fetchPositions } from "../lib/actions";
 import Link from "next/link";
-import PositionTable from "../components/positions/position-table";
+import PositionTable from "../components/positions/positions-table";
 import { ClientButton } from "../components/buttons";
 import CreatePositionModal from "../components/positions/create-position-modal";
 import ClientTitle from "../components/title";
-import PositionTableAndTableAction from "../components/positions/position-table-and-table-action";
+import PositionTableAndTableAction from "../components/positions/positions-table-and-table-action";
 import ClientStatistic from "../components/statistic";
 
 export default async function PositionsPage() {
@@ -25,8 +25,8 @@ export default async function PositionsPage() {
     0
   );
 
-  //parse it again since decimal cant pass to client component
-  const parsedPositions = JSON.parse(JSON.stringify(positions));
+  // //parse it again since decimal cant pass to client component
+  // const parsedPositions = JSON.parse(JSON.stringify(positions));
 
   return (
     <>
@@ -36,7 +36,7 @@ export default async function PositionsPage() {
       <ClientStatistic title="Open Positions" value={openPositionCount} />
       <ClientStatistic title="Closed Positions" value={closedPositionCount} />
 
-      <PositionTableAndTableAction positions={parsedPositions} />
+      <PositionTableAndTableAction positions={positions} />
     </>
   );
 }

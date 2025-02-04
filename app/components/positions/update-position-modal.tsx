@@ -7,10 +7,10 @@ import {
   startTransition,
   useActionState,
   useEffect,
+  useState,
 } from "react";
-import { PositionDataType } from "./position-table-and-table-action";
 import UpdatePositionForm from "./update-position-form";
-import { updatePosition } from "@/app/lib/actions";
+import { PositionDataType, updatePosition } from "@/app/lib/actions";
 import { useMessageContext } from "@/app/lib/providers/message-toast-provider";
 import { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
@@ -26,9 +26,15 @@ export default function UpdatePositionModal({
 }) {
   const updatePositionById = updatePosition.bind(null, position.id);
 
-  const [error, formAction, isPending] = useActionState(updatePositionById, {
-    message: null,
-  });
+  const initialStatus = {
+    status: undefined,
+    message: "",
+  };
+
+  const [res, formAction, isPending] = useActionState(
+    updatePositionById,
+    initialStatus
+  );
 
   const handleSubmit = (
     values: Prisma.PositionUpdateInput & Prisma.PositionTransactionCreateInput
@@ -44,14 +50,21 @@ export default function UpdatePositionModal({
   const openToast = useMessageContext();
 
   useEffect(() => {
-    if (!error && !isPending) {
+    if (res.status === "success" && !isPending) {
       setUpdateModalOpen(false);
-      openToast("success", "Position updated successfully.");
+      openToast(res.status, res.message);
     }
-  }, [error, isPending]);
+  }, [res, isPending]);
+
+  //reset res object so that the error msg disappear on modal close
+  const handleModalClose = () => {
+    res.status = initialStatus.status;
+    res.message = initialStatus.message;
+  };
 
   return (
     <Modal
+      afterClose={handleModalClose}
       destroyOnClose={true}
       title="Update Position"
       open={updateModalOpen}
@@ -62,7 +75,7 @@ export default function UpdatePositionModal({
     >
       <UpdatePositionForm
         handleSubmit={handleSubmit}
-        error={error}
+        res={res}
         position={position}
       />
     </Modal>

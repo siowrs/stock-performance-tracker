@@ -38,6 +38,7 @@ const menuItem: MenuItem[] = [
   getItem(1, <Link href="/">Dashboard</Link>, <HomeOutlined />),
   getItem(2, <Link href="/positions">Positions</Link>, <ProfileOutlined />),
   getItem(3, <Link href="/counters">Counters</Link>, <ShopOutlined />),
+  getItem(4, <Link href="/sectors">Sectors</Link>, <ShopOutlined />),
 ];
 
 const siderStyle: React.CSSProperties = {
