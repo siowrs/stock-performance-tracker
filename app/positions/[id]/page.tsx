@@ -1,4 +1,3 @@
-import PositionTable from "@/app/components/transaction/transaction-table";
 import ClientStatistic from "@/app/components/statistic";
 import ClientTitle from "@/app/components/title";
 import {
@@ -12,8 +11,9 @@ import {
   PercentageOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Card, Col, Row } from "antd";
-import TransactionTable from "@/app/components/transaction/transaction-table";
+import { Button, Card, Col, Row } from "antd";
+import TransactionsTable from "@/app/components/transactions/transaction-table";
+import UpdatePositionModalAndButton from "@/app/components/positions/position/update-position-modal-and-button";
 
 export default async function PositionPage({
   params,
@@ -23,6 +23,7 @@ export default async function PositionPage({
   const { id } = await params;
   const position = await fetchPositionById(id);
 
+  //tdl error handling
   if (!position) {
     return "No Position Found";
   }
@@ -35,16 +36,21 @@ export default async function PositionPage({
     ...position,
     gainOrLoss: +position.realizedGL > 0 ? "gain" : "loss",
     realizedGL: Math.abs(+position.realizedGL).toString(),
-    realizedGLPercentage: Math.abs(+position.realizedGLPercentage).toString(),
+    totalRealizedGLPercentage: Math.abs(
+      +position.totalRealizedGLPercentage
+    ).toString(),
   };
 
-  console.log(formattedPosition.transaction);
+  // console.log(formattedPosition.transaction);
 
   return (
     <>
       <ClientTitle level={4} type="secondary">
         Position Details
       </ClientTitle>
+      {position.status === "open" && (
+        <UpdatePositionModalAndButton position={position} />
+      )}
       <ClientTitle level={1}>{formattedPosition.counter.symbol}</ClientTitle>
       <ClientTitle level={5}>{formattedPosition.counter.name}</ClientTitle>
       <Row gutter={[16, 16]}>
@@ -114,7 +120,7 @@ export default async function PositionPage({
         <Col span={6}>
           <ClientStatistic
             title="Realized Profit/Loss %"
-            value={formattedPosition.realizedGLPercentage}
+            value={formattedPosition.totalRealizedGLPercentage}
             prefix={
               formattedPosition.gainOrLoss === "gain" ? (
                 <PlusOutlined />
@@ -132,7 +138,10 @@ export default async function PositionPage({
         </Col>
       </Row>
 
-      <TransactionTable transactions={formattedPosition.transaction} />
+      <TransactionsTable
+        transactions={formattedPosition.transaction}
+        currency={formattedPosition.counter.currency}
+      />
     </>
   );
 }

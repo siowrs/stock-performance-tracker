@@ -2,18 +2,26 @@ import { Counter } from "@prisma/client";
 import CreatePositionForm from "../components/positions/create-position-form";
 import { fetchCounters, fetchPositions } from "../lib/actions";
 import Link from "next/link";
-import PositionTable from "../components/positions/positions-table";
 import { ClientButton } from "../components/buttons";
 import CreatePositionModal from "../components/positions/create-position-modal";
 import ClientTitle from "../components/title";
-import PositionTableAndTableAction from "../components/positions/positions-table-and-table-action";
 import ClientStatistic from "../components/statistic";
+import PositionsTableAndUpdatePositionModal from "../components/positions/positions-table-and-update-position-modal";
 
 export default async function PositionsPage() {
   const [positions, counters] = await Promise.all([
     fetchPositions(),
     fetchCounters(),
   ]);
+
+  //tdl error handling
+  if ("status" in positions && "message" in positions) {
+    return positions.message;
+  }
+
+  if ("status" in counters && "message" in counters) {
+    return counters.message;
+  }
 
   const openPositionCount = positions.reduce(
     (acc, curr) => (curr.status === "open" ? ++acc : acc),
@@ -36,7 +44,7 @@ export default async function PositionsPage() {
       <ClientStatistic title="Open Positions" value={openPositionCount} />
       <ClientStatistic title="Closed Positions" value={closedPositionCount} />
 
-      <PositionTableAndTableAction positions={positions} />
+      <PositionsTableAndUpdatePositionModal positions={positions} />
     </>
   );
 }

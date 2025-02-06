@@ -35,7 +35,7 @@ export default function CreatePositionForm({
 
     acc[country].push({
       value: counter.id,
-      label: `${counter.name} (${counter.symbol})`,
+      label: counter.symbol,
     });
     return acc;
     //use Record in typescript to descript groupedCounters outcome type

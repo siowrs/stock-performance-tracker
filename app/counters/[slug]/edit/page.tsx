@@ -1,4 +1,4 @@
-import EditCounterForm from "@/app/components/counters/edit-counter-form";
+import EditCounterForm from "@/app/components/counters/update-counter-form";
 import { fetchCounterBySlug, fetchSectorsByCountry } from "@/app/lib/actions";
 
 export default async function EditCounterPage({

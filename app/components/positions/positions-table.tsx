@@ -7,6 +7,7 @@ import { useState, Dispatch, SetStateAction, useActionState } from "react";
 
 import {
   DeleteFilled,
+  DeleteOutlined,
   DeleteTwoTone,
   ExclamationCircleFilled,
   ExclamationCircleOutlined,
@@ -38,12 +39,10 @@ export default function PositionsTable({
   const columns: TableProps<PositionDataType>["columns"] = [
     {
       title: "Counter",
-      dataIndex: ["counter", "name"],
+      dataIndex: ["counter", "symbol"],
       key: "counter",
       render: (val, row) => (
-        <Link href={`counters/${row.counter.slug}`}>
-          {val} ({row.counter.symbol})
-        </Link>
+        <Link href={`counters/${row.counter.slug}`}>{val}</Link>
       ),
     },
 
@@ -95,7 +94,8 @@ export default function PositionsTable({
       title: "Action",
       key: "action",
       render: (val, row) => (
-        <div className="w-full flex gap-x-2">
+        // <div className="w-full flex gap-x-2">
+        <Space>
           <Button
             disabled={row.status === "open" ? false : true}
             onClick={() => {
@@ -135,10 +135,11 @@ export default function PositionsTable({
               // className="ml-auto"
               danger
               shape="circle"
-              icon={<DeleteFilled />}
+              icon={<DeleteOutlined />}
             />
           </Popconfirm>
-        </div>
+        </Space>
+        // </div>
       ),
     },
   ];
