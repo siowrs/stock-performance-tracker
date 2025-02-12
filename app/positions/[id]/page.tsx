@@ -14,6 +14,8 @@ import {
 import { Button, Card, Col, Row } from "antd";
 import TransactionsTable from "@/app/components/transactions/transaction-table";
 import UpdatePositionModalAndButton from "@/app/components/positions/position/update-position-modal-and-button";
+import PageTitle from "@/app/components/page-title";
+import DisplayTitle from "@/app/components/display-title";
 
 export default async function PositionPage({
   params,
@@ -34,10 +36,12 @@ export default async function PositionPage({
 
   const formattedPosition = {
     ...position,
-    gainOrLoss: +position.realizedGL > 0 ? "gain" : "loss",
+    ...(+position.realizedGL !== 0 && {
+      gainOrLoss: +position.realizedGL > 0 ? "gain" : "loss",
+    }),
     realizedGL: Math.abs(+position.realizedGL).toString(),
-    totalRealizedGLPercentage: Math.abs(
-      +position.totalRealizedGLPercentage
+    absoluteRealizedGLPercentage: Math.abs(
+      +position.absoluteRealizedGLPercentage
     ).toString(),
   };
 
@@ -45,13 +49,12 @@ export default async function PositionPage({
 
   return (
     <>
-      <ClientTitle level={4} type="secondary">
-        Position Details
-      </ClientTitle>
+      <PageTitle>{formattedPosition.counter.name} Position</PageTitle>
+
       {position.status === "open" && (
         <UpdatePositionModalAndButton position={position} />
       )}
-      <ClientTitle level={1}>{formattedPosition.counter.symbol}</ClientTitle>
+      <DisplayTitle>{formattedPosition.counter.symbol}</DisplayTitle>
       <ClientTitle level={5}>{formattedPosition.counter.name}</ClientTitle>
       <Row gutter={[16, 16]}>
         <Col span={6}>
@@ -62,15 +65,8 @@ export default async function PositionPage({
         </Col>
         <Col span={6}>
           <ClientStatistic
-            title="Quantity Bought"
-            value={formattedPosition.quantityBought}
-          />
-        </Col>
-
-        <Col span={6}>
-          <ClientStatistic
-            title="Quantity Remaining"
-            value={formattedPosition.quantityRemaining}
+            title="Quantity Available"
+            value={`${formattedPosition.quantityRemaining} / ${formattedPosition.quantityBought}`}
           />
         </Col>
 
@@ -101,45 +97,25 @@ export default async function PositionPage({
         <Col span={6}>
           <ClientStatistic
             title="Realized Profit/Loss"
-            value={`${formattedPosition.counter.currency}${formattedPosition.realizedGL}`}
-            prefix={
-              formattedPosition.gainOrLoss === "gain" ? (
-                <PlusOutlined />
-              ) : (
-                <MinusOutlined />
-              )
-            }
-            valueStyle={
-              formattedPosition.gainOrLoss === "gain"
-                ? { color: "#2dfc87" }
-                : { color: "#ff5e5e" }
-            }
-          />
-        </Col>
-
-        <Col span={6}>
-          <ClientStatistic
-            title="Realized Profit/Loss %"
-            value={formattedPosition.totalRealizedGLPercentage}
-            prefix={
-              formattedPosition.gainOrLoss === "gain" ? (
-                <PlusOutlined />
-              ) : (
-                <MinusOutlined />
-              )
-            }
-            suffix={<PercentageOutlined />}
-            valueStyle={
-              formattedPosition.gainOrLoss === "gain"
-                ? { color: "#2dfc87" }
-                : { color: "#ff5e5e" }
-            }
+            value={`${formattedPosition.counter.currency}${formattedPosition.realizedGL} (${formattedPosition.absoluteRealizedGLPercentage}%)`}
+            {...(formattedPosition.gainOrLoss && {
+              prefix:
+                formattedPosition.gainOrLoss === "gain" ? (
+                  <PlusOutlined />
+                ) : (
+                  <MinusOutlined />
+                ),
+              valueStyle:
+                formattedPosition.gainOrLoss === "gain"
+                  ? { color: "#2dfc87" }
+                  : { color: "#ff5e5e" },
+            })}
           />
         </Col>
       </Row>
 
       <TransactionsTable
-        transactions={formattedPosition.transaction}
+        transactions={formattedPosition.transactions}
         currency={formattedPosition.counter.currency}
       />
     </>

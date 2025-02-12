@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CounterDataType,
   CounterReturnState,
   fetchCounters,
   fetchSectorsByCountry,
@@ -15,7 +16,7 @@ export default function UpdateCounterForm({
   handleSubmit,
   res,
 }: {
-  counter: Counter;
+  counter: CounterDataType;
   handleSubmit: (values: Prisma.CounterUpdateInput) => void;
   res: CounterReturnState;
 }) {

@@ -10,7 +10,7 @@ import {
   useEffect,
 } from "react";
 import { Counter, Prisma } from "@prisma/client";
-import { updateCounter } from "@/app/lib/actions";
+import { CounterDataType, updateCounter } from "@/app/lib/actions";
 import { useMessageContext } from "@/app/lib/providers/message-toast-provider";
 
 export default function UpdateCounterModal({
@@ -18,7 +18,7 @@ export default function UpdateCounterModal({
   updateModalOpen,
   setUpdateModalOpen,
 }: {
-  counter: Counter;
+  counter: CounterDataType;
   updateModalOpen: boolean;
   setUpdateModalOpen: Dispatch<SetStateAction<boolean>>;
 }) {
@@ -53,7 +53,7 @@ export default function UpdateCounterModal({
   return (
     <Modal
       onClose={handleModalClose}
-      title="Update Counter"
+      title="Edit Counter Details"
       okText="Update Counter"
       okButtonProps={{ form: "updateCounterForm", htmlType: "submit" }}
       open={updateModalOpen}

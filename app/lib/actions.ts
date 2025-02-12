@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import GithubSlugger, { slug } from "github-slugger";
 import { Counter, Position, PositionTransaction, Prisma } from "@prisma/client";
 import dayjs from "dayjs";
+import { parseAndStringify } from "./misc";
+import { message } from "antd";
 
 const consoleError = (err: unknown) => console.error(`Database error: ${err}`);
 const slugger = new GithubSlugger();
@@ -140,13 +142,18 @@ export async function deleteSector(sectorId: string) {
 }
 
 //---counter---//
-// export type CounterDataType = {
-//   symbol: string;
-//   name: string;
-//   sector: string;
-//   country: string;
-//   remarks?: string | null;
-// };
+export type CounterDataType = Omit<
+  Counter,
+  | "totalBuyingCost"
+  | "totalRealizedRevenue"
+  | "totalRealizedGL"
+  | "absoluteRealizedGLPercentage"
+> & {
+  totalBuyingCost: string;
+  totalRealizedRevenue: string;
+  totalRealizedGL: string;
+  absoluteRealizedGLPercentage: string;
+};
 
 export type CounterReturnState = {
   // tdl validation
@@ -155,11 +162,19 @@ export type CounterReturnState = {
   };
 } & ReturnStatus;
 
-export async function fetchCounters(): Promise<Counter[] | CounterReturnState> {
+export async function fetchCounters(): Promise<
+  CounterDataType[] | CounterReturnState
+> {
   try {
     const counters = await prisma.counter.findMany({
       include: {
-        position: true,
+        positions: {
+          select: {
+            realizedGL: true,
+            // absoluteRealizedGLPercentage: true,
+            totalCost: true,
+          },
+        },
         sector: {
           select: {
             name: true,
@@ -168,7 +183,33 @@ export async function fetchCounters(): Promise<Counter[] | CounterReturnState> {
       },
     });
 
-    return JSON.parse(JSON.stringify(counters));
+    const formattedCounters = counters.map((c, i) => {
+      const { totalCost, realizedGL } = c.positions.reduce(
+        (acc, p) => {
+          acc.totalCost = acc.totalCost.plus(p.totalCost);
+          acc.realizedGL = acc.realizedGL.plus(p.realizedGL);
+          return acc;
+        },
+        {
+          totalCost: new Prisma.Decimal(0),
+          realizedGL: new Prisma.Decimal(0),
+        }
+      );
+
+      // leave out the position prop
+      const { positions, ...rest } = {
+        ...c,
+        totalCost,
+        realizedGL,
+        absoluteRealizedGLPercentage: totalCost.isZero()
+          ? 0
+          : realizedGL.dividedBy(totalCost).times(100).toDecimalPlaces(2),
+      };
+
+      return rest;
+    });
+
+    return JSON.parse(JSON.stringify(formattedCounters));
   } catch (error) {
     consoleError(error);
     return {
@@ -177,16 +218,47 @@ export async function fetchCounters(): Promise<Counter[] | CounterReturnState> {
     };
   }
 }
-export async function fetchCounterBySlug(counterSlug: string) {
+
+export type CounterWithPositionDataType = CounterDataType & {
+  // positions: Omit<PositionDataType, "counter">[];
+  positions: PositionDataType[];
+  sector: {
+    name: string;
+  };
+};
+export async function fetchCounterBySlug(
+  counterSlug: string
+): Promise<CounterWithPositionDataType | null | CounterReturnState> {
   try {
-    return await prisma.counter.findUnique({
+    const counter = await prisma.counter.findUnique({
       where: {
         slug: counterSlug,
       },
+      include: {
+        positions: {
+          include: {
+            counter: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        sector: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
+    // console.log(counter);
+    return parseAndStringify(counter);
   } catch (error) {
     consoleError(error);
-    throw new Error("Failed to fetch counter by slug.");
+    return {
+      status: "error",
+      message: "Failed to fetch counter by slug.",
+    };
   }
 }
 
@@ -273,19 +345,19 @@ export async function updateCounter(
   };
 }
 
-export async function deleteCounter(counterId: string) {
-  try {
-    await prisma.counter.delete({
-      where: {
-        id: counterId,
-      },
-    });
-  } catch (error) {
-    console.error(`Database error: ${error}`);
-    throw new Error("Failed to delete counter.");
-  }
-  revalidatePath("/counters");
-}
+// export async function deleteCounter(counterId: string) {
+//   try {
+//     await prisma.counter.delete({
+//       where: {
+//         id: counterId,
+//       },
+//     });
+//   } catch (error) {
+//     console.error(`Database error: ${error}`);
+//     throw new Error("Failed to delete counter.");
+//   }
+//   revalidatePath("/counters");
+// }
 
 //---position---//
 
@@ -303,12 +375,12 @@ export type PositionDataType = Omit<
   | "avgSellPrice"
   | "realizedGL"
   | "totalCost"
-  | "totalRealizedGLPercentage"
+  | "absoluteRealizedGLPercentage"
 > & {
   avgBuyPrice: string;
   avgSellPrice: string | null;
   realizedGL: string;
-  totalRealizedGLPercentage: string;
+  absoluteRealizedGLPercentage: string;
   totalCost: string;
   counter: Pick<Counter, "name" | "slug" | "symbol" | "currency">;
 };
@@ -322,7 +394,7 @@ export type PositionTransactionDataType = Omit<
 };
 
 export type PositionWithTransactionDataType = PositionDataType & {
-  transaction: PositionTransactionDataType[];
+  transactions: PositionTransactionDataType[];
 };
 
 export async function fetchPositions(): Promise<
@@ -384,7 +456,7 @@ export async function fetchPositionById(
             currency: true,
           },
         },
-        transaction: true,
+        transactions: true,
       },
     });
     // console.log(JSON.parse(JSON.stringify(position)));
@@ -437,33 +509,46 @@ export async function createPosition(
   }
 
   try {
-    await prisma.position.create({
-      data: {
-        quantityBought: +formData.quantity,
-        quantityRemaining: +formData.quantity,
-        status: "open",
-        openedAt: new Date(formData.transactionDate).toISOString(),
-        avgBuyPrice: new Prisma.Decimal(+formData.unitPrice),
-        avgSellPrice: Prisma.skip,
-        totalCost: +formData.quantity * +formData.unitPrice,
-        realizedGL: 0,
-        totalRealizedGLPercentage: 0,
-        counter: {
-          connect: { id: formData.counter as string },
-        },
-        //create record simultaneously
-        transaction: {
-          create: {
-            action: "buy",
-            unitPrice: new Prisma.Decimal(+formData.unitPrice),
-            quantity: +formData.quantity,
-            totalPrice: new Prisma.Decimal(
-              +formData.unitPrice * +formData.quantity
-            ),
-            transactionDate: new Date(formData.transactionDate).toISOString(),
+    await prisma.$transaction(async (tx) => {
+      await tx.position.create({
+        data: {
+          quantityBought: +formData.quantity,
+          quantityRemaining: +formData.quantity,
+          status: "open",
+          openedAt: new Date(formData.transactionDate).toISOString(),
+          avgBuyPrice: new Prisma.Decimal(+formData.unitPrice),
+          avgSellPrice: Prisma.skip,
+          totalCost: +formData.quantity * +formData.unitPrice,
+          realizedGL: 0,
+          // absoluteRealizedGLPercentage: 0,
+          counter: {
+            connect: { id: counter.id },
+          },
+          //create record simultaneously
+          transactions: {
+            create: {
+              action: "buy",
+              unitPrice: new Prisma.Decimal(+formData.unitPrice),
+              quantity: +formData.quantity,
+              totalPrice: new Prisma.Decimal(
+                +formData.unitPrice * +formData.quantity
+              ),
+              transactionDate: new Date(formData.transactionDate).toISOString(),
+            },
           },
         },
-      },
+      });
+
+      await tx.counter.update({
+        where: {
+          id: counter.id,
+        },
+        data: {
+          totalBuyingCost: {
+            increment: +formData.quantity * +formData.unitPrice,
+          },
+        },
+      });
     });
   } catch (error) {
     consoleError(error);
@@ -536,6 +621,7 @@ export async function updatePosition(
       totalCost: true,
       avgBuyPrice: true,
       realizedGL: true,
+      counter: true,
     },
   });
 
@@ -548,6 +634,8 @@ export async function updatePosition(
       message: "Position doesn't exist or already closed.",
     };
   }
+
+  const { counter } = currentPosition;
 
   // if trying sell more than remaining quantity
   const remainingQuantity =
@@ -588,6 +676,19 @@ export async function updatePosition(
           },
           avgBuyPrice: avgPrice,
           totalCost: newTotalPrice,
+          counter: {
+            update: {
+              totalBuyingCost: {
+                increment: newTotalPrice,
+              },
+              absoluteRealizedGLPercentage: counter.totalRealizedGL.dividedBy(
+                counter.totalBuyingCost
+                  .plus(newTotalPrice)
+                  .times(100)
+                  .toDecimalPlaces(2)
+              ),
+            },
+          },
         }),
 
         //if action is sell
@@ -605,9 +706,9 @@ export async function updatePosition(
           },
           // Calculate cost basis for the portion being sold
           // again formula provided by our AI overlord
-          // totalRealizedGLPercentage = realizedGL / (avgBuyPrice × quantity sold)​ × 100
-          // total totalRealizedGLPercentage = realizedGL + past realizedGL / total cost​ × 100
-          totalRealizedGLPercentage: realizedGL
+          // absoluteRealizedGLPercentage = realizedGL / (avgBuyPrice × quantity sold)​ × 100
+          // total absoluteRealizedGLPercentage = realizedGL + past realizedGL / total cost​ × 100
+          absoluteRealizedGLPercentage: realizedGL
             .plus(currentPosition.realizedGL)
             .dividedBy(currentPosition.totalCost)
             .times(100)
@@ -615,9 +716,23 @@ export async function updatePosition(
 
           avgSellPrice: avgPrice,
           status: remainingQuantity === 0 ? "closed" : "open",
+          counter: {
+            update: {
+              totalRealizedRevenue: {
+                increment: formDataTotalPrice,
+              },
+              totalRealizedGL: {
+                increment: realizedGL,
+              },
+              absoluteRealizedGLPercentage: counter.totalRealizedGL
+                .plus(realizedGL)
+                .dividedBy(counter.totalBuyingCost)
+                .times(100)
+                .toDecimalPlaces(2),
+            },
+          },
         }),
-
-        transaction: {
+        transactions: {
           create: {
             action: action,
             unitPrice: +formData.unitPrice,
@@ -648,8 +763,54 @@ export async function deletePosition(
   positionId: string
 ): Promise<PositionReturnState> {
   try {
-    await prisma.position.delete({
-      where: { id: positionId },
+    await prisma.$transaction(async (tx) => {
+      const position = await tx.position.findUnique({
+        where: {
+          id: positionId,
+        },
+        include: {
+          transactions: true,
+        },
+      });
+
+      if (!position) {
+        return {
+          status: "error",
+          message: "Position not found.",
+        };
+      }
+
+      const totalRealizedRevenue = position.transactions.reduce((acc, t) => {
+        if (t.action === "sell") {
+          acc = acc.plus(t.totalPrice);
+        }
+        return acc;
+      }, new Prisma.Decimal(0));
+
+      await tx.position.update({
+        where: {
+          id: positionId,
+        },
+        data: {
+          counter: {
+            update: {
+              totalBuyingCost: {
+                decrement: position.totalCost,
+              },
+              totalRealizedRevenue: {
+                decrement: totalRealizedRevenue,
+              },
+              totalRealizedGL: {
+                decrement: position.realizedGL,
+              },
+            },
+          },
+        },
+      });
+
+      await tx.position.delete({
+        where: { id: positionId },
+      });
     });
   } catch (error: any) {
     consoleError(error);
@@ -676,23 +837,6 @@ export async function deletePosition(
     message: "Position deleted successfully.",
   };
 }
-
-// export async function closePosition(
-//   positionId: string,
-//   prevState: unknown,
-//   formData: Prisma.PositionUpdateInput
-// ) {
-//   try {
-//     await prisma.position.update({
-//       where: {
-//         id: positionId,
-//       },
-//       data: {
-//         //tdl calculate remaining position
-//       },
-//     });
-//   } catch (error) {}
-// }
 
 //---position transaction---//
 // tdl: updatetransaction

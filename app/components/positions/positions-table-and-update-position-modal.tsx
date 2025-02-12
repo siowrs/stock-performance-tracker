@@ -6,15 +6,6 @@ import UpdatePositionModal from "./update-position-modal";
 import { Counter, Position } from "@prisma/client";
 import { PositionDataType } from "@/app/lib/actions";
 
-// export type PositionDataType = Omit<
-//   Position,
-//   "avgBuyPrice" | "avgSellPrice"
-// > & {
-//   avgBuyPrice: string;
-//   avgSellPrice: string | null;
-//   counter: Pick<Counter, "name" | "slug">;
-// };
-
 export default function PositionsTableAndUpdatePositionModal({
   positions,
 }: {

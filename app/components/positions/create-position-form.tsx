@@ -1,6 +1,10 @@
 "use client";
 
-import { createPosition, PositionReturnState } from "@/app/lib/actions";
+import {
+  CounterDataType,
+  createPosition,
+  PositionReturnState,
+} from "@/app/lib/actions";
 import { Counter, Prisma } from "@prisma/client";
 import {
   Button,
@@ -18,7 +22,7 @@ export default function CreatePositionForm({
   res,
   handleSubmit,
 }: {
-  counters: Counter[];
+  counters: CounterDataType[];
   res: PositionReturnState;
   handleSubmit: (
     values: Prisma.PositionCreateInput & Prisma.PositionTransactionCreateInput

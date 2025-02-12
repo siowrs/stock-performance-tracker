@@ -15,6 +15,7 @@ import {
 import { deletePosition, PositionDataType } from "@/app/lib/actions";
 import { useMessageContext } from "@/app/lib/providers/message-toast-provider";
 import { capitalizeFirstLetter } from "@/app/lib/misc";
+import { usePathname } from "next/navigation";
 
 export default function PositionsTable({
   positions,
@@ -36,16 +37,22 @@ export default function PositionsTable({
     }
   };
 
-  const columns: TableProps<PositionDataType>["columns"] = [
-    {
-      title: "Counter",
-      dataIndex: ["counter", "symbol"],
-      key: "counter",
-      render: (val, row) => (
-        <Link href={`counters/${row.counter.slug}`}>{val}</Link>
-      ),
-    },
+  const pathname = usePathname();
 
+  const columns: TableProps<PositionDataType>["columns"] = [
+    // onlyshow counter name column when not in counter page
+    ...(!pathname.startsWith("/counters")
+      ? [
+          {
+            title: "Counter",
+            dataIndex: ["counter", "symbol"],
+            key: "counter",
+            render: (val: string, row: PositionDataType) => (
+              <Link href={`counters/${row.counter.slug}`}>{val}</Link>
+            ),
+          },
+        ]
+      : []),
     {
       title: "Status",
       dataIndex: "status",
@@ -106,9 +113,9 @@ export default function PositionsTable({
             Update
           </Button>
 
-          <Button>
-            <Link href={`positions/${row.id}`}>View</Link>
-          </Button>
+          <Link href={`/positions/${row.id}`}>
+            <Button>View</Button>
+          </Link>
 
           <Popconfirm
             okText="Delete"
@@ -149,5 +156,11 @@ export default function PositionsTable({
     ...p,
   }));
 
-  return <Table<PositionDataType> columns={columns} dataSource={data} />;
+  return (
+    <Table<PositionDataType>
+      pagination={{ hideOnSinglePage: true }}
+      columns={columns}
+      dataSource={data}
+    />
+  );
 }

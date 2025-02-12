@@ -1,9 +1,10 @@
 "use client";
 
+import { CounterDataType } from "@/app/lib/actions";
 import { capitalizeFirstLetter } from "@/app/lib/misc";
 import { DeleteOutlined } from "@ant-design/icons";
 import { Counter } from "@prisma/client";
-import { Button, Space, Table, TableProps } from "antd";
+import { Button, Space, Table, TableProps, Typography } from "antd";
 import Link from "next/link";
 import { Dispatch, SetStateAction } from "react";
 
@@ -12,11 +13,12 @@ export default function CountersTable({
   setUpdateModalOpen,
   setSelected,
 }: {
-  counters: Counter[];
+  counters: CounterDataType[];
   setUpdateModalOpen: Dispatch<SetStateAction<boolean>>;
-  setSelected: Dispatch<SetStateAction<Counter | undefined>>;
+  setSelected: Dispatch<SetStateAction<CounterDataType | undefined>>;
 }) {
-  const columns: TableProps<Counter>["columns"] = [
+  const { Text } = Typography;
+  const columns: TableProps<CounterDataType>["columns"] = [
     {
       title: "Counter",
       dataIndex: "symbol",
@@ -27,6 +29,22 @@ export default function CountersTable({
       dataIndex: ["sector", "name"],
       key: "sector",
       render: (val) => capitalizeFirstLetter(val),
+    },
+    {
+      title: "Realized Gain/Loss",
+      dataIndex: "realizedGL",
+      key: "realizedGL",
+      render: (val, row) => {
+        return (
+          <>
+            <Text {...(val != 0 && { type: val > 0 ? "success" : "danger" })}>
+              {val}
+            </Text>
+            <br />
+            <Text type="secondary">{row.absoluteRealizedGLPercentage}%</Text>
+          </>
+        );
+      },
     },
     {
       title: "Remarks",
@@ -44,21 +62,20 @@ export default function CountersTable({
               setUpdateModalOpen(true);
             }}
           >
-            Update
+            Edit
           </Button>
-          <Button>
-            <Link href={`counters/${row.slug}`}>View</Link>
-          </Button>
+          <Link href={`/counters/${row.slug}`}>
+            <Button>View</Button>
+          </Link>
           <Button danger shape="circle" icon={<DeleteOutlined />} />
         </Space>
       ),
     },
   ];
 
-  const data: Counter[] = counters.map((c) => ({
+  const data: CounterDataType[] = counters.map((c) => ({
     key: c.id,
     ...c,
   }));
-  console.log(data);
-  return <Table<Counter> columns={columns} dataSource={data} />;
+  return <Table<CounterDataType> columns={columns} dataSource={data} />;
 }

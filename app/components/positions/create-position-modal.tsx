@@ -2,7 +2,7 @@
 
 import { Modal, Button, Typography, Form } from "antd";
 import CreatePositionForm from "./create-position-form";
-import { createPosition } from "@/app/lib/actions";
+import { CounterDataType, createPosition } from "@/app/lib/actions";
 import { Counter, Prisma } from "@prisma/client";
 import {
   useState,
@@ -17,7 +17,7 @@ import dayjs from "dayjs";
 export default function CreatePositionModal({
   counters,
 }: {
-  counters: Counter[];
+  counters: CounterDataType[];
 }) {
   const [createPositionModalOpen, setCreatePositionModalOpen] =
     useState<boolean>(false);
@@ -65,6 +65,8 @@ export default function CreatePositionModal({
     res.message = initialStatus.message;
   };
 
+  // tdl fetch counter data on modal open using afterOpenChange
+  // instead of passing it as props from parent
   return (
     <>
       <Button onClick={() => setCreatePositionModalOpen(true)}>

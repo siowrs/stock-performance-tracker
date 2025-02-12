@@ -1,6 +1,6 @@
 import prisma from "@/app/lib/db";
 import CreateCounterForm from "../components/counters/create-counter-form";
-import { deleteCounter, fetchCounters } from "../lib/actions";
+import { fetchCounters } from "../lib/actions";
 import { DeleteButton } from "../components/buttons";
 import Link from "next/link";
 import ClientTitle from "../components/title";
@@ -19,13 +19,6 @@ export default async function CountersPage() {
       <ClientTitle level={2}>Counters</ClientTitle>
       <CreateCounterModal />
       <CountersTableAndUpdateCounterModal counters={counters} />
-      {/* {counters.map((c) => (
-        <li key={c.id}>
-          {c.symbol} - {c.name}
-          <DeleteButton id={c.id} action={deleteCounter} />
-          <Link href={`counters/${c.slug}/edit`}>Edit</Link>
-        </li>
-      ))} */}
     </>
   );
 }

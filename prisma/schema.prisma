@@ -19,7 +19,7 @@ model Sector {
   name      String
   slug      String    @unique
   country   String
-  Counter   Counter[]
+  counters  Counter[]
   updatedAt DateTime  @updatedAt
   createdAt DateTime  @default(now())
 
@@ -27,18 +27,22 @@ model Sector {
 }
 
 model Counter {
-  id        String     @id @default(cuid())
-  symbol    String
-  name      String
-  slug      String     @unique
-  country   String
-  currency  String
-  sector    Sector     @relation(fields: [sectorId], references: [id], onDelete: Cascade)
-  sectorId  String
-  position  Position[]
-  remarks   String?
-  updatedAt DateTime   @updatedAt
-  createdAt DateTime   @default(now())
+  id                           String     @id @default(cuid())
+  symbol                       String
+  name                         String
+  slug                         String     @unique
+  country                      String
+  currency                     String
+  totalBuyingCost              Decimal    @default(0) @db.Decimal(10, 3)
+  totalRealizedRevenue         Decimal    @default(0) @db.Decimal(10, 3)
+  totalRealizedGL              Decimal    @default(0) @db.Decimal(10, 3)
+  absoluteRealizedGLPercentage Decimal    @default(0) @db.Decimal(10, 3)
+  sector                       Sector     @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  sectorId                     String
+  positions                    Position[]
+  remarks                      String?
+  updatedAt                    DateTime   @updatedAt
+  createdAt                    DateTime   @default(now())
 
   @@unique([symbol, name, slug, country])
 }
@@ -49,21 +53,21 @@ enum PositionStatus {
 }
 
 model Position {
-  id                        String                @id @default(cuid())
-  quantityBought            Int
-  quantityRemaining         Int
-  status                    PositionStatus
-  openedAt                  DateTime
-  avgBuyPrice               Decimal               @db.Decimal(10, 3)
-  avgSellPrice              Decimal?              @db.Decimal(10, 3)
-  totalCost                 Decimal               @db.Decimal(10, 3)
-  realizedGL                Decimal               @db.Decimal(10, 3)
-  totalRealizedGLPercentage Decimal               @db.Decimal(10, 3)
-  counter                   Counter               @relation(fields: [counterId], references: [id], onDelete: Cascade)
-  counterId                 String
-  transaction               PositionTransaction[]
-  updatedAt                 DateTime              @updatedAt
-  createdAt                 DateTime              @default(now())
+  id                           String                @id @default(cuid())
+  quantityBought               Int
+  quantityRemaining            Int
+  status                       PositionStatus
+  openedAt                     DateTime
+  avgBuyPrice                  Decimal               @db.Decimal(10, 3)
+  avgSellPrice                 Decimal?              @db.Decimal(10, 3)
+  totalCost                    Decimal               @db.Decimal(10, 3)
+  realizedGL                   Decimal               @default(0) @db.Decimal(10, 3)
+  absoluteRealizedGLPercentage Decimal               @default(0) @db.Decimal(10, 3)
+  counter                      Counter               @relation(fields: [counterId], references: [id], onDelete: Cascade)
+  counterId                    String
+  transactions                 PositionTransaction[]
+  updatedAt                    DateTime              @updatedAt
+  createdAt                    DateTime              @default(now())
 }
 
 enum TransactionAction {
