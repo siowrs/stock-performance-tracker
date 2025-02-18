@@ -162,6 +162,56 @@ export type CounterReturnState = {
   };
 } & ReturnStatus;
 
+export async function fetchTopGainer(): Promise<
+  CounterDataType | null | CounterReturnState
+> {
+  try {
+    const counter = await prisma.counter.findFirst({
+      where: {
+        totalRealizedGL: {
+          gt: 0,
+        },
+      },
+      orderBy: {
+        totalRealizedGL: "desc",
+      },
+    });
+    // console.log(counter);
+    return parseAndStringify(counter);
+  } catch (error) {
+    consoleError(error);
+    return {
+      status: "error",
+      message: "Failed to fetch top gainer.",
+    };
+  }
+}
+
+export async function fetchTopLoser(): Promise<
+  CounterDataType | null | CounterReturnState
+> {
+  try {
+    const counter = await prisma.counter.findFirst({
+      where: {
+        totalRealizedGL: {
+          lt: 0,
+        },
+      },
+      orderBy: {
+        totalRealizedGL: "asc",
+      },
+    });
+    // console.log(counter);
+    return parseAndStringify(counter);
+  } catch (error) {
+    consoleError(error);
+    return {
+      status: "error",
+      message: "Failed to fetch top gainer.",
+    };
+  }
+}
+
 export async function fetchCounters(): Promise<
   CounterDataType[] | CounterReturnState
 > {
@@ -209,7 +259,7 @@ export async function fetchCounters(): Promise<
       return rest;
     });
 
-    return JSON.parse(JSON.stringify(formattedCounters));
+    return parseAndStringify(formattedCounters);
   } catch (error) {
     consoleError(error);
     return {
@@ -382,7 +432,7 @@ export type PositionDataType = Omit<
   realizedGL: string;
   absoluteRealizedGLPercentage: string;
   totalCost: string;
-  counter: Pick<Counter, "name" | "slug" | "symbol" | "currency">;
+  counter: Pick<Counter, "country" | "name" | "slug" | "symbol" | "currency">;
 };
 
 export type PositionTransactionDataType = Omit<
@@ -397,11 +447,16 @@ export type PositionWithTransactionDataType = PositionDataType & {
   transactions: PositionTransactionDataType[];
 };
 
-export async function fetchPositions(): Promise<
-  PositionDataType[] | PositionReturnState
-> {
+export async function fetchPositions(
+  status?: "open" | "closed"
+): Promise<PositionDataType[] | PositionReturnState> {
   try {
     const positions = await prisma.position.findMany({
+      ...(status && {
+        where: {
+          status: status,
+        },
+      }),
       // query for both position and counter name
       include: {
         counter: {
@@ -410,13 +465,13 @@ export async function fetchPositions(): Promise<
             slug: true,
             symbol: true,
             currency: true,
+            country: true,
           },
         },
       },
     });
-
     //parse it again since decimal cant pass to client component
-    return JSON.parse(JSON.stringify(positions));
+    return parseAndStringify(positions);
   } catch (error) {
     consoleError(error);
     return {
@@ -459,9 +514,8 @@ export async function fetchPositionById(
         transactions: true,
       },
     });
-    // console.log(JSON.parse(JSON.stringify(position)));
 
-    return JSON.parse(JSON.stringify(position));
+    return parseAndStringify(position);
   } catch (error: any) {
     consoleError(error);
 
@@ -520,6 +574,7 @@ export async function createPosition(
           avgSellPrice: Prisma.skip,
           totalCost: +formData.quantity * +formData.unitPrice,
           realizedGL: 0,
+          updatedAt: new Date(formData.transactionDate).toISOString(),
           // absoluteRealizedGLPercentage: 0,
           counter: {
             connect: { id: counter.id },
@@ -732,6 +787,7 @@ export async function updatePosition(
             },
           },
         }),
+        updatedAt: new Date(formData.transactionDate).toISOString(),
         transactions: {
           create: {
             action: action,
@@ -851,4 +907,91 @@ export async function fetchPositionTransactionByPositionId(positionId: string) {
     consoleError(error);
     throw new Error("Failed to fetch position transaction by positon ID.");
   }
+}
+
+//---fetch dashboard data---//
+export async function fetchYearlyPerformance(year: number) {
+  try {
+    const currencyInDB = await prisma.counter
+      .findMany({
+        distinct: ["currency"],
+        select: {
+          currency: true,
+        },
+      })
+      .then((results) => results.map((r) => r.currency));
+
+    // console.log(currencyInDB);
+
+    const data = await prisma.position.findMany({
+      orderBy: {
+        updatedAt: "asc",
+      },
+      where: {
+        status: "closed",
+        updatedAt: {
+          gte: new Date(`1 Jan ${year}`).toISOString(),
+          lte: new Date(`31 Dec ${year}`).toISOString(),
+        },
+      },
+      select: {
+        counter: {
+          select: {
+            currency: true,
+          },
+        },
+        realizedGL: true,
+        totalCost: true,
+        updatedAt: true,
+      },
+    });
+
+    // console.log(data);
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const formattedData = months.reduce<{
+      [month: string]: {
+        [currency: string]: {
+          realizedGL: Prisma.Decimal;
+          totalCost: Prisma.Decimal;
+        };
+      };
+    }>((acc, month) => {
+      acc[month] = acc[month] ?? {};
+
+      currencyInDB.forEach((currency) => {
+        acc[month][currency] = acc[month][currency] ?? {
+          realizedGL: new Prisma.Decimal(0),
+          totalCost: new Prisma.Decimal(0),
+        };
+      });
+
+      return acc;
+    }, {});
+
+    data.forEach((del) => {
+      const month = dayjs(del.updatedAt).format("MMM");
+      const currency = del.counter.currency;
+
+      formattedData[month][currency].realizedGL = formattedData[month][
+        currency
+      ].realizedGL.plus(del.realizedGL);
+      formattedData[month][currency].totalCost = formattedData[month][
+        currency
+      ].totalCost.plus(del.totalCost);
+    });
+  } catch (error) {}
 }

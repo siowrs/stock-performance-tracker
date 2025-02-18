@@ -1,11 +1,12 @@
-"use client";
+// "use client";
 
 import { Card, Statistic, StatisticProps } from "antd";
+import CustomCard from "./card";
 
-export default function ClientStatistic({ ...props }: StatisticProps) {
+export default function CustomStatistic({ ...props }: StatisticProps) {
   return (
-    <Card bordered={false}>
+    <CustomCard>
       <Statistic {...props} />
-    </Card>
+    </CustomCard>
   );
 }

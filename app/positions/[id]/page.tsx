@@ -1,4 +1,4 @@
-import ClientStatistic from "@/app/components/statistic";
+import CustomStatistic from "@/app/components/statistic";
 import ClientTitle from "@/app/components/title";
 import {
   fetchPositionById,
@@ -58,33 +58,33 @@ export default async function PositionPage({
       <ClientTitle level={5}>{formattedPosition.counter.name}</ClientTitle>
       <Row gutter={[16, 16]}>
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Status"
             value={capitalizeFirstLetter(formattedPosition.status)}
           />
         </Col>
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Quantity Available"
             value={`${formattedPosition.quantityRemaining} / ${formattedPosition.quantityBought}`}
           />
         </Col>
 
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Total Buying Cost"
             value={`${formattedPosition.counter.currency}${formattedPosition.totalCost}`}
           />
         </Col>
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Average Unit Buy Price"
             value={`${formattedPosition.counter.currency}${formattedPosition.avgBuyPrice}`}
           />
         </Col>
 
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Average Unit Sell Price"
             value={
               formattedPosition.avgSellPrice
@@ -95,7 +95,7 @@ export default async function PositionPage({
         </Col>
 
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Realized Profit/Loss"
             value={`${formattedPosition.counter.currency}${formattedPosition.realizedGL} (${formattedPosition.absoluteRealizedGLPercentage}%)`}
             {...(formattedPosition.gainOrLoss && {

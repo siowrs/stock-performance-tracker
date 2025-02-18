@@ -5,8 +5,9 @@ import Link from "next/link";
 import { ClientButton } from "../components/buttons";
 import CreatePositionModal from "../components/positions/create-position-modal";
 import ClientTitle from "../components/title";
-import ClientStatistic from "../components/statistic";
+import CustomStatistic from "../components/statistic";
 import PositionsTableAndUpdatePositionModal from "../components/positions/positions-table-and-update-position-modal";
+import ModuleTitle from "../components/module-title";
 
 export default async function PositionsPage() {
   const [positions, counters] = await Promise.all([
@@ -38,11 +39,11 @@ export default async function PositionsPage() {
 
   return (
     <>
-      <ClientTitle level={2}>Positions</ClientTitle>
+      <ModuleTitle>Positions</ModuleTitle>
 
       <CreatePositionModal counters={counters} />
-      <ClientStatistic title="Open Positions" value={openPositionCount} />
-      <ClientStatistic title="Closed Positions" value={closedPositionCount} />
+      <CustomStatistic title="Open Positions" value={openPositionCount} />
+      <CustomStatistic title="Closed Positions" value={closedPositionCount} />
 
       <PositionsTableAndUpdatePositionModal positions={positions} />
     </>

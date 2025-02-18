@@ -6,6 +6,7 @@ import Link from "next/link";
 import ClientTitle from "../components/title";
 import CountersTableAndUpdateCounterModal from "../components/counters/counters-table-and-update-counter-modal";
 import CreateCounterModal from "../components/counters/create-counter-modal";
+import ModuleTitle from "../components/module-title";
 
 export default async function CountersPage() {
   const counters = await fetchCounters();
@@ -16,7 +17,7 @@ export default async function CountersPage() {
   }
   return (
     <>
-      <ClientTitle level={2}>Counters</ClientTitle>
+      <ModuleTitle>Counters</ModuleTitle>
       <CreateCounterModal />
       <CountersTableAndUpdateCounterModal counters={counters} />
     </>

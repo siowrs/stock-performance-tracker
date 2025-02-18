@@ -1,7 +1,7 @@
 import DisplayTitle from "@/app/components/display-title";
 import PageTitle from "@/app/components/page-title";
 import PageTitle2 from "@/app/components/page-subtitle";
-import ClientStatistic from "@/app/components/statistic";
+import CustomStatistic from "@/app/components/statistic";
 import ClientTitle from "@/app/components/title";
 import { fetchCounterBySlug, PositionDataType } from "@/app/lib/actions";
 import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
@@ -60,19 +60,19 @@ export default async function CounterPage({
       <DisplayTitle>{formattedCounter.name}</DisplayTitle>
       <Row gutter={[16, 16]}>
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Total Buying Cost"
             value={`${formattedCounter.currency}${formattedCounter.totalBuyingCost}`}
           />
         </Col>
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Total Realized Revenue"
             value={`${formattedCounter.currency}${formattedCounter.totalRealizedRevenue}`}
           />
         </Col>
         <Col span={6}>
-          <ClientStatistic
+          <CustomStatistic
             title="Total Realized GL"
             {...(formattedCounter.gainOrLoss && {
               prefix:

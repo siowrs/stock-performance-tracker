@@ -5,3 +5,6 @@ export function capitalizeFirstLetter(val: string) {
 export function parseAndStringify(obj: object | null) {
   return obj ? JSON.parse(JSON.stringify(obj)) : null;
 }
+
+export const gainGreen = "#2dfc87";
+export const lossRed = "#ff5e5e";
