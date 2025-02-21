@@ -1,7 +1,7 @@
 import { Button, Typography } from "antd";
 import CustomCard from "./components/card";
 import ModuleTitle from "./components/module-title";
-import {
+import fetchWinRate, {
   fetchPositions,
   fetchTopGainer,
   fetchTopLoser,
@@ -20,14 +20,15 @@ import DisplayTitle from "./components/display-title";
 import ClientTitle from "./components/title";
 import { green } from "@ant-design/colors";
 import { gainGreen } from "./lib/misc";
-import PerformanceChart from "./components/dashboard/performance";
+import YearlyPerformanceChart from "./components/dashboard/performance-chart";
+import WinRateChart from "./components/dashboard/win-rate-chart";
 
 export default async function Dashboard() {
-  const [openPositions, topGainer, topLoser, x] = await Promise.all([
+  const [openPositions, topGainer, topLoser, winRate] = await Promise.all([
     fetchPositions("open"),
     fetchTopGainer(),
     fetchTopLoser(),
-    fetchYearlyPerformance(2025),
+    fetchWinRate(),
   ]);
 
   const openPositionsError =
@@ -36,12 +37,11 @@ export default async function Dashboard() {
     !topGainer || ("status" in topGainer && "message" in topGainer);
   const topLoserError =
     !topLoser || ("status" in topLoser && "message" in topLoser);
-  // console.log(topGainer);
 
-  // console.log(topGainer);
   return (
     <>
-      <PerformanceChart />
+      <YearlyPerformanceChart />
+      <WinRateChart winRate={winRate} />
       <ModuleTitle>Dashboard</ModuleTitle>
       <CustomCard
         title="Open Positions"

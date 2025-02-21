@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import GithubSlugger, { slug } from "github-slugger";
 import { Counter, Position, PositionTransaction, Prisma } from "@prisma/client";
 import dayjs from "dayjs";
-import { parseAndStringify } from "./misc";
+import convertDataCurrency, { parseAndStringify } from "./misc";
 import { message } from "antd";
 
 const consoleError = (err: unknown) => console.error(`Database error: ${err}`);
@@ -176,7 +176,6 @@ export async function fetchTopGainer(): Promise<
         totalRealizedGL: "desc",
       },
     });
-    // console.log(counter);
     return parseAndStringify(counter);
   } catch (error) {
     consoleError(error);
@@ -201,7 +200,6 @@ export async function fetchTopLoser(): Promise<
         totalRealizedGL: "asc",
       },
     });
-    // console.log(counter);
     return parseAndStringify(counter);
   } catch (error) {
     consoleError(error);
@@ -301,7 +299,6 @@ export async function fetchCounterBySlug(
         },
       },
     });
-    // console.log(counter);
     return parseAndStringify(counter);
   } catch (error) {
     consoleError(error);
@@ -909,21 +906,30 @@ export async function fetchPositionTransactionByPositionId(positionId: string) {
   }
 }
 
+export type YearlyPerformanceDataType = {
+  month: string;
+  currency: string;
+  type: string;
+  value: number;
+};
+
 //---fetch dashboard data---//
-export async function fetchYearlyPerformance(year: number) {
+export async function fetchYearlyPerformance(
+  year: number,
+  currency: string
+): Promise<YearlyPerformanceDataType[] | ReturnStatus> {
   try {
-    const currencyInDB = await prisma.counter
-      .findMany({
-        distinct: ["currency"],
-        select: {
-          currency: true,
-        },
-      })
-      .then((results) => results.map((r) => r.currency));
+    // const currencyInDB = await prisma.counter
+    //   .findMany({
+    //     distinct: ["currency"],
+    //     select: {
+    //       currency: true,
+    //     },
+    //   })
+    //   .then((results) => results.map((r) => r.currency));
 
     // console.log(currencyInDB);
-
-    const data = await prisma.position.findMany({
+    const positions = await prisma.position.findMany({
       orderBy: {
         updatedAt: "asc",
       },
@@ -946,7 +952,6 @@ export async function fetchYearlyPerformance(year: number) {
       },
     });
 
-    // console.log(data);
     const months = [
       "Jan",
       "Feb",
@@ -962,36 +967,310 @@ export async function fetchYearlyPerformance(year: number) {
       "Dec",
     ];
 
-    const formattedData = months.reduce<{
-      [month: string]: {
-        [currency: string]: {
-          realizedGL: Prisma.Decimal;
-          totalCost: Prisma.Decimal;
-        };
-      };
-    }>((acc, month) => {
-      acc[month] = acc[month] ?? {};
-
-      currencyInDB.forEach((currency) => {
-        acc[month][currency] = acc[month][currency] ?? {
-          realizedGL: new Prisma.Decimal(0),
-          totalCost: new Prisma.Decimal(0),
-        };
-      });
-
+    const data = months.reduce<
+      Record<
+        string,
+        {
+          month: string;
+          currency: string;
+          type: string;
+          value: number;
+        }[]
+      >
+    >((acc, month) => {
+      acc[month] = [
+        {
+          month,
+          currency,
+          type: "realizedGL",
+          value: 0,
+        },
+        {
+          month,
+          currency,
+          type: "totalCost",
+          value: 0,
+        },
+      ];
       return acc;
     }, {});
 
-    data.forEach((del) => {
-      const month = dayjs(del.updatedAt).format("MMM");
-      const currency = del.counter.currency;
+    // console.log(data);
 
-      formattedData[month][currency].realizedGL = formattedData[month][
-        currency
-      ].realizedGL.plus(del.realizedGL);
-      formattedData[month][currency].totalCost = formattedData[month][
-        currency
-      ].totalCost.plus(del.totalCost);
+    positions.forEach((position) => {
+      const month = dayjs(position.updatedAt).format("MMM");
+      // convert all other currency to rm by default
+      // tdl get currency converter api
+      let currentPosition =
+        position.counter.currency === currency
+          ? position
+          : convertDataCurrency(currency, position);
+
+      // update realizedgl
+      const realizedGLObj = data[month][0];
+      realizedGLObj.value = new Prisma.Decimal(realizedGLObj.value ?? 0)
+        .plus(currentPosition.realizedGL)
+        .toNumber();
+
+      // update total cost
+      const totalCostObj = data[month][1];
+      totalCostObj.value = new Prisma.Decimal(totalCostObj.value ?? 0)
+        .plus(currentPosition.totalCost)
+        .toNumber();
     });
-  } catch (error) {}
+
+    // console.log(Object.values(parseAndStringify(data)).flat());
+
+    //cant pass decimal directly, have to parse first
+    return Object.values(data).flat() as YearlyPerformanceDataType[];
+    // return data;
+  } catch (error) {
+    consoleError(error);
+    return {
+      status: "error",
+      message: "Failed to fetch yearly performance.",
+    };
+  }
+
+  //   const data = months.reduce<
+  //     {
+  //       month: string;
+  //       currency: string;
+  //       ["Total Cost"]: Prisma.Decimal;
+  //       ["Realized G/L"]: Prisma.Decimal;
+  //     }[]
+  //   >((acc, month) => {
+  //     // currencyInDB.forEach((currency) => {
+  //     acc.push({
+  //       month: month,
+  //       currency: "RM",
+  //       ["Total Cost"]: new Prisma.Decimal(0),
+  //       ["Realized G/L"]: new Prisma.Decimal(0),
+  //     });
+  //     // });
+
+  //     return acc;
+  //   }, []);
+
+  //   // // map is for efficient for large dataset
+  //   // // instead of nested loop
+  //   // // also just to learn something new
+  //   const monthDataMap = new Map();
+  //   positions.forEach((el) => {
+  //     const month = dayjs(el.updatedAt).format("MMM");
+  //     const currency = el.counter.currency;
+  //     const key = month;
+  //     let current = el;
+  //     // convert all other currency to rm by default
+  //     // tdl get currency converter api
+  //     if (currency !== "RM") {
+  //       // console.log(el, convertDataCurrency("RM", el));
+  //       current = convertDataCurrency("RM", el);
+  //     }
+
+  //     // // initialize if key doesnt exist
+  //     if (!monthDataMap.has(key)) {
+  //       monthDataMap.set(key, {
+  //         totalCost: current.totalCost,
+  //         realizedGL: current.realizedGL,
+  //       });
+  //     } else {
+  //       const exist = monthDataMap.get(key);
+  //       exist.totalCost = exist.totalCost.plus(current.totalCost);
+  //       exist.realizedGL = exist.realizedGL.plus(current.realizedGL);
+  //     }
+  //   });
+
+  //   // console.log(monthDataMap);
+
+  //   // // Update data skeleton using Map data
+  //   data.forEach((item) => {
+  //     const key = item.month;
+  //     const mapData = monthDataMap.get(key);
+  //     if (mapData) {
+  //       item["Total Cost"] = mapData.totalCost;
+  //       item["Realized G/L"] = mapData.realizedGL;
+  //     }
+  //   });
+  //   //cant pass decimal directly, have to parse first
+  //   return parseAndStringify(data);
+  //   // return data;
+  // } catch (error) {
+  //   consoleError(error);
+  //   return {
+  //     status: "error",
+  //     message: "Failed to fetch yearly performance.",
+  //   };
+  // }
+
+  // try {
+  //   const currencyInDB = await prisma.counter
+  //     .findMany({
+  //       distinct: ["currency"],
+  //       select: {
+  //         currency: true,
+  //       },
+  //     })
+  //     .then((results) => results.map((r) => r.currency));
+
+  //   // console.log(currencyInDB);
+
+  //   const positions = await prisma.position.findMany({
+  //     orderBy: {
+  //       updatedAt: "asc",
+  //     },
+  //     where: {
+  //       status: "closed",
+  //       updatedAt: {
+  //         gte: new Date(`1 Jan ${year}`).toISOString(),
+  //         lte: new Date(`31 Dec ${year}`).toISOString(),
+  //       },
+  //     },
+  //     select: {
+  //       counter: {
+  //         select: {
+  //           currency: true,
+  //         },
+  //       },
+  //       realizedGL: true,
+  //       totalCost: true,
+  //       updatedAt: true,
+  //     },
+  //   });
+
+  //   const months = [
+  //     "Jan",
+  //     "Feb",
+  //     "Mar",
+  //     "Apr",
+  //     "May",
+  //     "Jun",
+  //     "Jul",
+  //     "Aug",
+  //     "Sep",
+  //     "Oct",
+  //     "Nov",
+  //     "Dec",
+  //   ];
+
+  //   const data = months.reduce<
+  //     {
+  //       month: string;
+  //       currency: string;
+  //       totalCost: Prisma.Decimal;
+  //       realizedGL: Prisma.Decimal;
+  //     }[]
+  //   >((acc, month) => {
+  //     currencyInDB.forEach((currency) => {
+  //       acc.push({
+  //         month: month,
+  //         currency: currency,
+  //         totalCost: new Prisma.Decimal(0),
+  //         realizedGL: new Prisma.Decimal(0),
+  //       });
+  //     });
+
+  //     return acc;
+  //   }, []);
+
+  //   // map is for efficient for large dataset
+  //   // instead of nested loop
+  //   // also just to learn something new
+  //   const monthDataMap = new Map();
+  //   positions.forEach((el) => {
+  //     const month = dayjs(el.updatedAt).format("MMM");
+  //     const currency = el.counter.currency;
+  //     const key = `${month}-${currency}`;
+
+  //     // initialize if key doesnt exist
+  //     if (!monthDataMap.has(key)) {
+  //       monthDataMap.set(key, {
+  //         totalCost: el.totalCost,
+  //         realizedGL: el.realizedGL,
+  //       });
+  //     } else {
+  //       const exist = monthDataMap.get(key);
+  //       exist.totalCost = exist.totalCost.plus(el.totalCost);
+  //       exist.realizedGL = exist.realizedGL.plus(el.realizedGL);
+  //     }
+  //   });
+
+  //   // Update data skeleton using Map data
+  //   data.forEach((item) => {
+  //     const key = `${item.month}-${item.currency}`;
+  //     const mapData = monthDataMap.get(key);
+  //     if (mapData) {
+  //       item.totalCost = mapData.totalCost;
+  //       item.realizedGL = mapData.realizedGL;
+  //     }
+  //   });
+
+  //   // dataSkeleton.forEach((d) => {
+  //   //   data.forEach((el) => {
+  //   //     const month = dayjs(el.updatedAt).format("MMM");
+  //   //     const currency = el.counter.currency;
+  //   //     if (d.month === month && d.currency === currency) {
+  //   //       d.realizedGL = d.realizedGL.plus(el.realizedGL);pnpm
+  //   //       d.totalCost = d.totalCost.plus(el.totalCost);
+  //   //     }
+  //   //   });
+  //   // });
+  //   //cant pass decimal directly, have to parse first
+  //   console.log(data);
+  //   return parseAndStringify(data);
+  //   // return data;
+  // } catch (error) {
+  //   consoleError(error);
+  //   return {
+  //     status: "error",
+  //     message: "Failed to fetch yearly performance.",
+  //   };
+  // }
+}
+export type WinRateType = [
+  number,
+  {
+    type: string;
+    value: number;
+  }[]
+];
+
+export default async function fetchWinRate(): Promise<
+  WinRateType | ReturnStatus
+> {
+  try {
+    const positions = await prisma.position.findMany({
+      where: {
+        status: "closed",
+      },
+    });
+
+    const formattedPositions = positions.reduce(
+      (acc, el) => {
+        if (el.realizedGL.isPositive()) {
+          acc.win.value++;
+        } else if (el.realizedGL.isNegative()) {
+          acc.lost.value++;
+        } else if (el.realizedGL.isZero()) {
+          acc.even.value++;
+        }
+
+        return acc;
+      },
+      {
+        win: { type: "Win", value: 0 },
+        lost: { type: "Lost", value: 0 },
+        even: { type: "Even", value: 0 },
+      }
+    );
+
+    return [positions.length, Object.values(formattedPositions)];
+    // console.log(formattedPositions);
+  } catch (error) {
+    consoleError(error);
+    return {
+      status: "error",
+      message: "Failed to fetch win rate.",
+    };
+  }
 }
