@@ -4,10 +4,18 @@ import PageTitle2 from "@/app/components/page-subtitle";
 import CustomStatistic from "@/app/components/statistic";
 import ClientTitle from "@/app/components/title";
 import { fetchCounterBySlug, PositionDataType } from "@/app/lib/actions";
-import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
-import { Col, Row } from "antd";
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  MinusOutlined,
+  PercentageOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import { Col, Row, Tag } from "antd";
 import PageSubTitle from "@/app/components/page-subtitle";
 import PositionsTableAndUpdatePositionModal from "@/app/components/positions/positions-table-and-update-position-modal";
+import ContentLayout from "@/app/components/content-layout";
+import { formatNumber, gainGreen, lossRed } from "@/app/lib/misc";
 
 export default async function CounterPage({
   params,
@@ -54,10 +62,16 @@ export default async function CounterPage({
   };
 
   return (
-    <>
+    <ContentLayout>
       <PageTitle>Counter Performance</PageTitle>
 
-      <DisplayTitle>{formattedCounter.name}</DisplayTitle>
+      <div>
+        <DisplayTitle className="!mb-2">{formattedCounter.symbol}</DisplayTitle>
+        <ClientTitle className="!mt-0" level={5}>
+          {formattedCounter.name}
+        </ClientTitle>
+      </div>
+
       <Row gutter={[16, 16]}>
         <Col span={6}>
           <CustomStatistic
@@ -73,20 +87,63 @@ export default async function CounterPage({
         </Col>
         <Col span={6}>
           <CustomStatistic
-            title="Total Realized GL"
+            title="Realized Profit/Loss"
+            value={`${formattedCounter.currency}${formatNumber(
+              formattedCounter.totalRealizedGL
+            )}`}
             {...(formattedCounter.gainOrLoss && {
+              valueStyle: {
+                color:
+                  formattedCounter.gainOrLoss === "gain" ? gainGreen : lossRed,
+              },
+
               prefix:
                 formattedCounter.gainOrLoss === "gain" ? (
                   <PlusOutlined />
                 ) : (
                   <MinusOutlined />
                 ),
-              valueStyle:
-                formattedCounter.gainOrLoss === "gain"
-                  ? { color: "#2dfc87" }
-                  : { color: "#ff5e5e" },
+
+              suffix: (
+                <Tag
+                  className="!ms-3"
+                  style={{
+                    color:
+                      formattedCounter.gainOrLoss === "gain"
+                        ? "#133f1d"
+                        : "#340e0e",
+                  }}
+                  color={
+                    formattedCounter.gainOrLoss === "gain" ? gainGreen : lossRed
+                  }
+                  icon={
+                    formattedCounter.gainOrLoss === "gain" ? (
+                      <ArrowUpOutlined
+                        style={{
+                          color: "#133f1d",
+                        }}
+                      />
+                    ) : (
+                      <ArrowDownOutlined
+                        style={{
+                          color: "#340e0e",
+                        }}
+                      />
+                    )
+                  }
+                >
+                  {formattedCounter.absoluteRealizedGLPercentage}
+                  <PercentageOutlined
+                    style={{
+                      color:
+                        formattedCounter.gainOrLoss === "gain"
+                          ? "#133f1d"
+                          : "#340e0e",
+                    }}
+                  />
+                </Tag>
+              ),
             })}
-            value={`${formattedCounter.currency}${formattedCounter.totalRealizedGL} (${formattedCounter.absoluteRealizedGLPercentage}%)`}
           />
         </Col>
       </Row>
@@ -96,8 +153,10 @@ export default async function CounterPage({
           <PositionsTableAndUpdatePositionModal positions={[currPosition]} />
         </>
       )}
-      <PageSubTitle>Past Positions</PageSubTitle>
-      <PositionsTableAndUpdatePositionModal positions={pastPositions} />
-    </>
+      <div>
+        <PageSubTitle>Past Positions</PageSubTitle>
+        <PositionsTableAndUpdatePositionModal positions={pastPositions} />
+      </div>
+    </ContentLayout>
   );
 }

@@ -8,7 +8,7 @@ import {
   updateCounter,
 } from "@/app/lib/actions";
 import { Counter, Prisma, Sector } from "@prisma/client";
-import { Button, Form, Input, Select, Space, Typography } from "antd";
+import { Button, Flex, Form, Input, Select, Space, Typography } from "antd";
 import { startTransition, useActionState, useEffect, useState } from "react";
 
 export default function UpdateCounterForm({
@@ -78,23 +78,26 @@ export default function UpdateCounterForm({
         <Form.Item label="Counter" name="name">
           <Input placeholder="hi" />
         </Form.Item>
-        <Form.Item label="Country" name="country">
-          <Select
-            onChange={(val) => {
-              setNewCountry(val);
-            }}
-            options={[
-              { value: "my", label: "Malaysia" },
-              { value: "us", label: "United States" },
-            ]}
-          ></Select>
-        </Form.Item>
-        <Form.Item label="Sector" name="sector">
-          <Select
-            loading={sectors === null}
-            options={sectors?.map((s) => ({ value: s.id, label: s.name }))}
-          ></Select>
-        </Form.Item>
+        <Flex gap="middle">
+          <Form.Item label="Country" name="country" className="w-full">
+            <Select
+              onChange={(val) => {
+                setNewCountry(val);
+              }}
+              options={[
+                { value: "my", label: "Malaysia" },
+                { value: "us", label: "United States" },
+              ]}
+            ></Select>
+          </Form.Item>
+          <Form.Item label="Sector" name="sector" className="w-full">
+            <Select
+              loading={sectors === null}
+              options={sectors?.map((s) => ({ value: s.id, label: s.name }))}
+            ></Select>
+          </Form.Item>
+        </Flex>
+
         <Form.Item label="Remarks" name="remarks">
           <Input />
         </Form.Item>

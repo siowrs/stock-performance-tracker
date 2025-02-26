@@ -8,9 +8,12 @@ import {
 import { Counter, Prisma } from "@prisma/client";
 import {
   Button,
+  Col,
   DatePicker,
+  Flex,
   Form,
   Input,
+  Row,
   Select,
   Space,
   Typography,
@@ -71,15 +74,17 @@ export default function CreatePositionForm({
             ]}
           ></Select>
         </Form.Item>
-        <Form.Item label="Quantity" name="quantity">
-          <Input />
-        </Form.Item>
-        <Form.Item label="Unit Price" name="unitPrice">
-          <Input />
-        </Form.Item>
         <Form.Item label="Open Date" name="transactionDate">
-          <DatePicker format="DD/MM/YYYY" />
+          <DatePicker className="w-full" format="DD/MM/YYYY" />
         </Form.Item>
+        <Flex gap="middle">
+          <Form.Item label="Quantity" name="quantity" className="w-full">
+            <Input />
+          </Form.Item>
+          <Form.Item label="Unit Price" name="unitPrice" className="w-full">
+            <Input />
+          </Form.Item>
+        </Flex>
       </Form>
     </Space>
   );

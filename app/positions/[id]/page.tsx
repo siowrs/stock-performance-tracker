@@ -5,17 +5,25 @@ import {
   PositionDataType,
   PositionReturnState,
 } from "@/app/lib/actions";
-import { capitalizeFirstLetter } from "@/app/lib/misc";
 import {
+  capitalizeFirstLetter,
+  formatNumber,
+  gainGreen,
+  lossRed,
+} from "@/app/lib/misc";
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   MinusOutlined,
   PercentageOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Row } from "antd";
+import { Button, Card, Col, Row, Tag } from "antd";
 import TransactionsTable from "@/app/components/transactions/transaction-table";
 import UpdatePositionModalAndButton from "@/app/components/positions/position/update-position-modal-and-button";
 import PageTitle from "@/app/components/page-title";
 import DisplayTitle from "@/app/components/display-title";
+import ContentLayout from "@/app/components/content-layout";
 
 export default async function PositionPage({
   params,
@@ -48,14 +56,20 @@ export default async function PositionPage({
   // console.log(formattedPosition.transaction);
 
   return (
-    <>
-      <PageTitle>{formattedPosition.counter.name} Position</PageTitle>
+    <ContentLayout>
+      <PageTitle>Position Details</PageTitle>
 
       {position.status === "open" && (
         <UpdatePositionModalAndButton position={position} />
       )}
-      <DisplayTitle>{formattedPosition.counter.symbol}</DisplayTitle>
-      <ClientTitle level={5}>{formattedPosition.counter.name}</ClientTitle>
+      <div>
+        <DisplayTitle className="!mb-2">
+          {formattedPosition.counter.symbol}
+        </DisplayTitle>
+        <ClientTitle className="!mt-0" level={5}>
+          {formattedPosition.counter.name}
+        </ClientTitle>
+      </div>
       <Row gutter={[16, 16]}>
         <Col span={6}>
           <CustomStatistic
@@ -97,18 +111,63 @@ export default async function PositionPage({
         <Col span={6}>
           <CustomStatistic
             title="Realized Profit/Loss"
-            value={`${formattedPosition.counter.currency}${formattedPosition.realizedGL} (${formattedPosition.absoluteRealizedGLPercentage}%)`}
+            value={`${formattedPosition.counter.currency}${formatNumber(
+              formattedPosition.realizedGL
+            )}`}
             {...(formattedPosition.gainOrLoss && {
+              valueStyle: {
+                color:
+                  formattedPosition.gainOrLoss === "gain" ? gainGreen : lossRed,
+              },
+
               prefix:
                 formattedPosition.gainOrLoss === "gain" ? (
                   <PlusOutlined />
                 ) : (
                   <MinusOutlined />
                 ),
-              valueStyle:
-                formattedPosition.gainOrLoss === "gain"
-                  ? { color: "#2dfc87" }
-                  : { color: "#ff5e5e" },
+
+              suffix: (
+                <Tag
+                  className="!ms-3"
+                  style={{
+                    color:
+                      formattedPosition.gainOrLoss === "gain"
+                        ? "#133f1d"
+                        : "#340e0e",
+                  }}
+                  color={
+                    formattedPosition.gainOrLoss === "gain"
+                      ? gainGreen
+                      : lossRed
+                  }
+                  icon={
+                    formattedPosition.gainOrLoss === "gain" ? (
+                      <ArrowUpOutlined
+                        style={{
+                          color: "#133f1d",
+                        }}
+                      />
+                    ) : (
+                      <ArrowDownOutlined
+                        style={{
+                          color: "#340e0e",
+                        }}
+                      />
+                    )
+                  }
+                >
+                  {formattedPosition.absoluteRealizedGLPercentage}
+                  <PercentageOutlined
+                    style={{
+                      color:
+                        formattedPosition.gainOrLoss === "gain"
+                          ? "#133f1d"
+                          : "#340e0e",
+                    }}
+                  />
+                </Tag>
+              ),
             })}
           />
         </Col>
@@ -118,6 +177,6 @@ export default async function PositionPage({
         transactions={formattedPosition.transactions}
         currency={formattedPosition.counter.currency}
       />
-    </>
+    </ContentLayout>
   );
 }

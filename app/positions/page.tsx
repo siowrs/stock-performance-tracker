@@ -8,6 +8,8 @@ import ClientTitle from "../components/title";
 import CustomStatistic from "../components/statistic";
 import PositionsTableAndUpdatePositionModal from "../components/positions/positions-table-and-update-position-modal";
 import ModuleTitle from "../components/module-title";
+import { Col, Flex, Row, Space } from "antd";
+import ContentLayout from "../components/content-layout";
 
 export default async function PositionsPage() {
   const [positions, counters] = await Promise.all([
@@ -38,14 +40,24 @@ export default async function PositionsPage() {
   // const parsedPositions = JSON.parse(JSON.stringify(positions));
 
   return (
-    <>
-      <ModuleTitle>Positions</ModuleTitle>
-
-      <CreatePositionModal counters={counters} />
-      <CustomStatistic title="Open Positions" value={openPositionCount} />
-      <CustomStatistic title="Closed Positions" value={closedPositionCount} />
+    <ContentLayout>
+      <Flex justify="space-between" align="center">
+        <ModuleTitle>Positions</ModuleTitle>
+        <CreatePositionModal counters={counters} />
+      </Flex>
+      <Row gutter={16}>
+        <Col span={4}>
+          <CustomStatistic title="Open Positions" value={openPositionCount} />
+        </Col>
+        <Col span={4}>
+          <CustomStatistic
+            title="Closed Positions"
+            value={closedPositionCount}
+          />
+        </Col>
+      </Row>
 
       <PositionsTableAndUpdatePositionModal positions={positions} />
-    </>
+    </ContentLayout>
   );
 }

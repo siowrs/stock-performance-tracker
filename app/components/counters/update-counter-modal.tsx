@@ -60,6 +60,7 @@ export default function UpdateCounterModal({
       onCancel={() => setUpdateModalOpen(false)}
       confirmLoading={isPending}
       destroyOnClose={true}
+      centered={true}
     >
       <UpdateCounterForm
         res={res}

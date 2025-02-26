@@ -9,13 +9,16 @@ import React, { useEffect, useState } from "react";
 import CustomCard from "../card";
 import { Select, Space, Typography } from "antd";
 import { channel } from "diagnostics_channel";
-import convertDataCurrency, {
+import {
+  convertDataCurrency,
+  formatNumber,
   gainGreen,
   lossRed,
   parseAndStringify,
 } from "@/app/lib/misc";
 import { Prisma } from "@prisma/client";
 import * as d3 from "d3";
+
 export default function YearlyPerformanceChart() {
   const [data, setData] = useState<YearlyPerformanceDataType[]>([]);
   const [year, setYear] = useState<number>(new Date().getFullYear());
@@ -32,19 +35,11 @@ export default function YearlyPerformanceChart() {
         return performance.message;
       } else {
         if (!ignore) {
-          // rename the property since
-          // cant customize through antd tooltip
-          setData(
-            performance.map((p) => ({
-              ...p,
-              type: p.type === "realizedGL" ? "Realized G/L" : "Total Cost",
-            }))
-          );
+          setData(performance);
         }
       }
     })();
 
-    console.log(d3.format(",")(1550));
     return () => {
       ignore = true;
     };
@@ -52,12 +47,14 @@ export default function YearlyPerformanceChart() {
 
   const config = {
     data,
+    height: 400,
     tooltip: {
-      title: (d) => `${d.month} ${year}`,
+      title: (d: YearlyPerformanceDataType) => `${d.month} ${year}`,
       items: [
         {
           channel: "y",
-          valueFormatter: (d) => currency + `${d3.format(",")(d)}`,
+          valueFormatter: (value: number) =>
+            (value < 0 ? "- " : "") + currency + formatNumber(value),
         },
         //   (d) => ({
         //     channel: "y",

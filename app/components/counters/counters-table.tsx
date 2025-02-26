@@ -1,10 +1,20 @@
 "use client";
 
 import { CounterDataType } from "@/app/lib/actions";
-import { capitalizeFirstLetter } from "@/app/lib/misc";
-import { DeleteOutlined } from "@ant-design/icons";
+import {
+  capitalizeFirstLetter,
+  formatNumber,
+  gainGreen,
+  lossRed,
+} from "@/app/lib/misc";
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  DeleteOutlined,
+  PercentageOutlined,
+} from "@ant-design/icons";
 import { Counter } from "@prisma/client";
-import { Button, Space, Table, TableProps, Typography } from "antd";
+import { Button, Space, Table, TableProps, Tag, Typography } from "antd";
 import Link from "next/link";
 import { Dispatch, SetStateAction } from "react";
 
@@ -32,16 +42,52 @@ export default function CountersTable({
     },
     {
       title: "Realized Gain/Loss",
-      dataIndex: "realizedGL",
-      key: "realizedGL",
+      dataIndex: "totalRealizedGL",
+      key: "totalRealizedGL",
       render: (val, row) => {
         return (
           <>
             <Text {...(val != 0 && { type: val > 0 ? "success" : "danger" })}>
-              {val}
+              {row.currency}
+              {formatNumber(val)}
             </Text>
             <br />
-            <Text type="secondary">{row.absoluteRealizedGLPercentage}%</Text>
+            {val !== 0 ? (
+              <Tag
+                className=""
+                style={{
+                  color: val > 0 ? "#133f1d" : "#340e0e",
+                }}
+                color={val > 0 ? gainGreen : lossRed}
+                icon={
+                  val > 0 ? (
+                    <ArrowUpOutlined
+                      style={{
+                        color: "#133f1d",
+                      }}
+                    />
+                  ) : (
+                    <ArrowDownOutlined
+                      style={{
+                        color: "#340e0e",
+                      }}
+                    />
+                  )
+                }
+              >
+                {row.absoluteRealizedGLPercentage}
+                <PercentageOutlined
+                  style={{
+                    color: val > 0 ? "#133f1d" : "#340e0e",
+                  }}
+                />
+              </Tag>
+            ) : (
+              <Tag className="">
+                {row.absoluteRealizedGLPercentage}
+                <PercentageOutlined />
+              </Tag>
+            )}
           </>
         );
       },
@@ -67,7 +113,7 @@ export default function CountersTable({
           <Link href={`/counters/${row.slug}`}>
             <Button>View</Button>
           </Link>
-          <Button danger shape="circle" icon={<DeleteOutlined />} />
+          {/* <Button danger shape="circle" icon={<DeleteOutlined />} /> */}
         </Space>
       ),
     },

@@ -9,6 +9,7 @@ import { Position, Prisma } from "@prisma/client";
 import {
   Button,
   DatePicker,
+  Flex,
   Form,
   Input,
   Select,
@@ -50,15 +51,21 @@ export default function UpdatePositionForm({
             ]}
           />
         </Form.Item>
-        <Form.Item label="Quantity" name="quantity">
-          <Input />
+        <Form.Item
+          label="Transaction Date"
+          name="transactionDate"
+          className="w-full"
+        >
+          <DatePicker format="DD/MM/YYYY" className="w-full" />
         </Form.Item>
-        <Form.Item label="Unit Price" name="unitPrice">
-          <Input />
-        </Form.Item>
-        <Form.Item label="Transaction Date" name="transactionDate">
-          <DatePicker format="DD/MM/YYYY" />
-        </Form.Item>
+        <Flex gap="middle">
+          <Form.Item label="Quantity" name="quantity" className="w-full">
+            <Input />
+          </Form.Item>
+          <Form.Item label="Unit Price" name="unitPrice" className="w-full">
+            <Input />
+          </Form.Item>
+        </Flex>
       </Form>
     </Space>
   );

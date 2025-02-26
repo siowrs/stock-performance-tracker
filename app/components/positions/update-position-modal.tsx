@@ -72,6 +72,7 @@ export default function UpdatePositionModal({
       okButtonProps={{ form: "updatePositionForm", htmlType: "submit" }}
       onCancel={() => setUpdateModalOpen(false)}
       confirmLoading={isPending}
+      centered={true}
     >
       <UpdatePositionForm
         handleSubmit={handleSubmit}

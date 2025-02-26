@@ -1,7 +1,11 @@
 "use client";
 import { Pie } from "@ant-design/charts";
 import CustomCard from "../card";
-import { ReturnStatus, WinRateType } from "@/app/lib/actions";
+import {
+  ReturnStatus,
+  WinRateDetailsDataType,
+  WinRateType,
+} from "@/app/lib/actions";
 import * as d3 from "d3";
 
 export default function WinRateChart({
@@ -17,12 +21,13 @@ export default function WinRateChart({
   const [totalTrades, rate] = winRate;
   const config = {
     data: rate,
+    height: 400,
     angleField: "value",
     colorField: "type",
     innerRadius: 0.6,
     tooltip: {
       items: [
-        (d) => ({
+        (d: WinRateDetailsDataType) => ({
           channel: "y",
           name: `${d.type}`,
           value: `${d3.format(",")(d.value)}`,
@@ -30,7 +35,7 @@ export default function WinRateChart({
       ],
     },
     label: {
-      text: (d) =>
+      text: (d: WinRateDetailsDataType) =>
         d.value !== 0 ? +((d.value / totalTrades) * 100).toFixed(2) + "%" : "",
       style: {
         fontWeight: "bold",
@@ -38,9 +43,14 @@ export default function WinRateChart({
     },
     legend: {
       color: {
-        title: false,
-        position: "right",
+        // title: false,
+        position: "bottom",
         rowPadding: 5,
+        layout: {
+          justifyContent: "center",
+          alignItems: "center",
+          flexDirection: "row",
+        },
       },
     },
     annotations: [
@@ -51,7 +61,7 @@ export default function WinRateChart({
           x: "50%",
           y: "50%",
           textAlign: "center",
-          fontSize: 24,
+          fontSize: 16,
           fontStyle: "bold",
           fill: "white",
         },
@@ -61,8 +71,9 @@ export default function WinRateChart({
   };
 
   return (
-    <CustomCard title="Win Rate">
+    <CustomCard title="Win Rate" className="h-full">
       <Pie {...config} />
+      {/* tdl add top trade and worst trade here*/}
     </CustomCard>
   );
 }
