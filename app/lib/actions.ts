@@ -852,10 +852,15 @@ export async function deletePosition(
         .minus(position.realizedGL)
         .toDecimalPlaces(3);
 
-      const counterAbsoluteRealizedGLPercentage = counterRealizedGL
-        .dividedBy(counterTotalCost)
-        .times(100)
-        .toDecimalPlaces(2);
+      // since theres no such thing as divide by 0,
+      // then if countertotalcost is 0,
+      // set counterAbsoluteRealizedGLPercentage to 0
+      const counterAbsoluteRealizedGLPercentage = counterTotalCost.isZero()
+        ? new Prisma.Decimal(0)
+        : counterRealizedGL
+            .dividedBy(counterTotalCost)
+            .times(100)
+            .toDecimalPlaces(2);
 
       await tx.position.update({
         where: {
@@ -994,7 +999,7 @@ export async function fetchYearlyPerformance(
         {
           month,
           currency,
-          type: "Realized G/L",
+          type: "Total Revenue",
           value: 0,
         },
         {
@@ -1018,10 +1023,11 @@ export async function fetchYearlyPerformance(
           ? position
           : convertDataCurrency(currency, position);
 
-      // update realizedgl
-      const realizedGLObj = data[month][0];
-      realizedGLObj.value = new Prisma.Decimal(realizedGLObj.value ?? 0)
+      // update totalrevenue
+      const totalRevenueObj = data[month][0];
+      totalRevenueObj.value = new Prisma.Decimal(totalRevenueObj.value ?? 0)
         .plus(currentPosition.realizedGL)
+        .plus(currentPosition.totalCost)
         //cant pass decimal directly to client component,
         // have to convert to number or parse it first
 

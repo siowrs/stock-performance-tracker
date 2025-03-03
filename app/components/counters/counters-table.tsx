@@ -45,6 +45,7 @@ export default function CountersTable({
       dataIndex: "totalRealizedGL",
       key: "totalRealizedGL",
       render: (val, row) => {
+        console.log(val);
         return (
           <>
             <Text {...(val != 0 && { type: val > 0 ? "success" : "danger" })}>
@@ -52,7 +53,7 @@ export default function CountersTable({
               {formatNumber(val)}
             </Text>
             <br />
-            {val !== 0 ? (
+            {val != 0 ? (
               <Tag
                 className=""
                 style={{

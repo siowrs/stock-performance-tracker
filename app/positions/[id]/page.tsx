@@ -18,7 +18,7 @@ import {
   PercentageOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Row, Tag } from "antd";
+import { Button, Card, Col, Flex, Row, Tag } from "antd";
 import TransactionsTable from "@/app/components/transactions/transaction-table";
 import UpdatePositionModalAndButton from "@/app/components/positions/position/update-position-modal-and-button";
 import PageTitle from "@/app/components/page-title";
@@ -57,11 +57,13 @@ export default async function PositionPage({
 
   return (
     <ContentLayout>
-      <PageTitle>Position Details</PageTitle>
+      <Flex justify="space-between" align="center">
+        <PageTitle>Position Details</PageTitle>
 
-      {position.status === "open" && (
-        <UpdatePositionModalAndButton position={position} />
-      )}
+        {position.status === "open" && (
+          <UpdatePositionModalAndButton position={position} />
+        )}
+      </Flex>
       <div>
         <DisplayTitle className="!mb-2">
           {formattedPosition.counter.symbol}
